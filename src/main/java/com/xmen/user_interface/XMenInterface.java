@@ -120,10 +120,20 @@ public class XMenInterface extends Application {
   /** Cached decoded PNG resources — same bitmap reused across every load. */
   private static volatile Image cachedSplashFallback;
   private static volatile Image cachedChatIconWhite;
+  private static volatile java.util.List<Image> cachedAppIcons;
+
+  /** Sizes JavaFX should be offered for the taskbar / dock / Alt-Tab. */
+  private static final int[] APP_ICON_SIZES = {16, 24, 32, 48, 64, 128, 256, 512};
+  private static final String APP_ICON_RESOURCE = "/images/Front-End-Logo.png";
 
   @Override
   public void start(Stage stage) {
     this.primaryStage = stage;
+    // Ship the X-Men logo to the OS so the taskbar / dock / Alt-Tab uses our
+    // brand mark at a usable resolution (without this JavaFX falls back to the
+    // generic Java cup, which is what made the taskbar icon look tiny on
+    // previous Windows builds).
+    applyAppIcon(stage);
     // Ask the OS for a dark title bar / window chrome — best-effort, see WindowChrome.
     // Same hint applies to the splash and main windows because it's process-wide.
     WindowChrome.requestDarkChrome(stage);
@@ -559,6 +569,43 @@ public class XMenInterface extends Application {
       } catch (Exception ignored) {
       }
       return cachedChatIconWhite;
+    }
+  }
+
+  /**
+   * Register the X-Men brand mark at a range of standard sizes on the given stage so the OS
+   * picks the closest one for the taskbar, dock, Alt-Tab list, and window title bar. JavaFX's
+   * default behaviour (no icons set) is a generic Java cup at a single resolution, which is
+   * what made the previous Windows builds look tiny and washed-out on the taskbar.
+   */
+  static void applyAppIcon(Stage stage) {
+    if (stage == null) return;
+    java.util.List<Image> icons = loadAppIcons();
+    if (icons.isEmpty()) return;
+    try {
+      stage.getIcons().setAll(icons);
+    } catch (Exception ignored) {
+    }
+  }
+
+  private static java.util.List<Image> loadAppIcons() {
+    java.util.List<Image> cached = cachedAppIcons;
+    if (cached != null) return cached;
+    synchronized (XMenInterface.class) {
+      if (cachedAppIcons != null) return cachedAppIcons;
+      java.util.List<Image> list = new java.util.ArrayList<>();
+      for (int size : APP_ICON_SIZES) {
+        try (InputStream is = XMenInterface.class.getResourceAsStream(APP_ICON_RESOURCE)) {
+          if (is == null) break;
+          // requestedWidth/Height + preserveRatio + smooth = high-quality downscaled bitmap
+          // at the size the OS asks for, so each Image fed to Stage.getIcons() is crisp.
+          list.add(new Image(is, size, size, true, true));
+        } catch (Exception e) {
+          log.debug("App icon {}px unavailable: {}", size, e.getMessage());
+        }
+      }
+      cachedAppIcons = java.util.Collections.unmodifiableList(list);
+      return cachedAppIcons;
     }
   }
 

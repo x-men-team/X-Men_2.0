@@ -5,6 +5,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      app_version:
+        description: "App version for jpackage (X.Y.Z, no SNAPSHOT). Leave blank to use 1.0.1."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -21,17 +26,18 @@ jobs:
             package_type: EXE
             asset_name: X-Men.exe
             artifact_glob: target/dist/*.exe
-            package_icon: src/main/resources/packaging/x-men-icon.ico
-          - os: macos-13
+          - os: macos-13          # Intel runner — produces an x86_64 .dmg that runs on Intel Macs
             package_type: DMG
-            asset_name: X-Men.dmg
+            asset_name: X-Men-x64.dmg
             artifact_glob: target/dist/*.dmg
-            package_icon: src/main/resources/packaging/x-men-icon.icns
+          - os: macos-14          # Apple Silicon runner — produces an arm64 .dmg
+            package_type: DMG
+            asset_name: X-Men-arm64.dmg
+            artifact_glob: target/dist/*.dmg
           - os: ubuntu-latest
             package_type: DEB
             asset_name: X-Men.deb
             artifact_glob: target/dist/*.deb
-            package_icon: src/main/resources/packaging/x-men-icon.png
 
     steps:
       - name: Check out repository
@@ -48,7 +54,11 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x ./mvnw
 
-      - name: Generate macOS app icon
+      # The repo ships a pre-built .icns generated from the master logo, but
+      # regenerate it on the macOS runner with the OS-native `iconutil` so the
+      # produced .icns always matches the Apple-recommended layout (one-time
+      # cost; the rest of the build does not care).
+      - name: Refresh macOS app icon via iconutil
         if: runner.os == 'macOS'
         shell: bash
         run: |
@@ -67,14 +77,31 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fakeroot
 
+      - name: Resolve app version
+        id: appver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            v="${GITHUB_REF_NAME#v}"
+          else
+            v="${{ github.event.inputs.app_version }}"
+          fi
+          if [[ ! "$v" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+            v="1.0.1"
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Using app version: $v"
+
+      # The OS-aware profiles in pom.xml pick the right --icon for each
+      # platform, so callers only need -Djpackage.type and -Djpackage.appVersion.
       - name: Build installer
         shell: bash
         run: |
-          app_version="${GITHUB_REF_NAME#v}"
-          if [[ ! "$app_version" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
-            app_version="1.0.1"
-          fi
-          ./mvnw -P installer -Djpackage.type=${{ matrix.package_type }} -Djpackage.icon=${{ matrix.package_icon }} -Djpackage.appVersion="$app_version" -DskipTests clean package
+          ./mvnw -B -ntp -P installer \
+            -Djpackage.type=${{ matrix.package_type }} \
+            -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
+            -DskipTests \
+            clean package
 
       - name: Normalize asset name
         shell: bash
@@ -85,10 +112,12 @@ jobs:
           matches=( ${{ matrix.artifact_glob }} )
           if [ ${#matches[@]} -ne 1 ]; then
             echo "Expected exactly one installer matching '${{ matrix.artifact_glob }}', found ${#matches[@]}"
+            ls -R target/dist || true
             printf '%s\n' "${matches[@]}"
             exit 1
           fi
           cp "${matches[0]}" "release-assets/${{ matrix.asset_name }}"
+          ls -la release-assets
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4

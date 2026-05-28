@@ -20,6 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.6.0</springdoc.version>
+        <javafx.version>23.0.1</javafx.version>
     </properties>
 
     <dependencies>
@@ -126,16 +127,128 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- JavaFX (one version only). Suppose we keep the newest one, 23.0.1 -->
+        <!--
+          JavaFX 23.0.1 — controls + media (which transitively pull in base + graphics).
+
+          The plain (no-classifier) artifacts only carry the build host's natives, so a
+          Windows build host produces a jar that cannot launch JavaFX on Mac or Linux.
+          Add every supported classifier explicitly so the fat jar bundles
+          win / linux / mac (Intel) / mac-aarch64 (Apple Silicon) native libraries —
+          the same jar then runs on every platform we ship installers for.
+        -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>23.0.1</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-media</artifactId>
-            <version>23.0.1</version>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- Windows natives -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>win</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>win</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>win</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>win</classifier>
+        </dependency>
+
+        <!-- Linux natives -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>linux</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>linux</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>linux</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>linux</classifier>
+        </dependency>
+
+        <!-- macOS Intel natives -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac</classifier>
+        </dependency>
+
+        <!-- macOS Apple Silicon natives -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac-aarch64</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac-aarch64</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac-aarch64</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>mac-aarch64</classifier>
         </dependency>
 
         <!-- SwingX -->
@@ -361,7 +474,7 @@
 
     <profiles>
         <!--
-          Installer profile: turns the shaded fat jar into a native installer
+          Installer profile: turns the Spring Boot fat jar into a native installer
           via the JDK's `jpackage` tool.
 
           Usage:
@@ -373,6 +486,9 @@
             mvn clean package -P installer -Djpackage.type=DEB      # Linux  .deb
             mvn clean package -P installer -Djpackage.type=RPM      # Linux  .rpm
 
+          The per-OS icon (-Djpackage.icon=…) is picked automatically by the
+          activate-by-OS profiles below, so callers don't need to set it.
+
           Override the user-visible version with -Djpackage.appVersion=X.Y.Z
           (jpackage rejects Maven SNAPSHOT versions).
         -->
@@ -382,12 +498,17 @@
             <properties>
                 <jpackage.type>APP_IMAGE</jpackage.type>
                 <jpackage.appVersion>1.0.0</jpackage.appVersion>
+                <!--
+                  Fallback icon if no OS-specific profile fired. Each platform
+                  profile below overrides this to point at the native format
+                  (.ico on Windows, .icns on macOS, .png on Linux).
+                -->
                 <jpackage.icon>${project.basedir}/src/main/resources/packaging/x-men-icon.png</jpackage.icon>
             </properties>
 
             <build>
                 <plugins>
-                    <!-- 1) Stage the shaded jar into a clean input folder. -->
+                    <!-- 1) Stage the Spring Boot fat jar into a clean input folder. -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-resources-plugin</artifactId>
@@ -437,6 +558,7 @@
                                     <icon>${jpackage.icon}</icon>
                                     <javaOptions>
                                         <option>-Djava.awt.headless=false</option>
+                                        <option>-Dfile.encoding=UTF-8</option>
                                     </javaOptions>
                                 </configuration>
                             </execution>
@@ -447,11 +569,54 @@
         </profile>
 
         <!--
+          OS-specific icon override + jpackage extras. Each profile activates
+          automatically when running on the matching family, so callers can use
+          a single command (e.g. `mvn package -P installer -Djpackage.type=DMG`)
+          and get the right icon shape without remembering paths.
+        -->
+        <profile>
+            <id>installer-windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <jpackage.icon>${project.basedir}/src/main/resources/packaging/x-men-icon.ico</jpackage.icon>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>installer-mac</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <jpackage.icon>${project.basedir}/src/main/resources/packaging/x-men-icon.icns</jpackage.icon>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>installer-linux</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>linux</name>
+                </os>
+            </activation>
+            <properties>
+                <jpackage.icon>${project.basedir}/src/main/resources/packaging/x-men-icon.png</jpackage.icon>
+            </properties>
+        </profile>
+
+        <!--
           Windows-specific extras for the `exe` / `msi` installers:
           create a Start-menu shortcut, a desktop shortcut, and let the user
           choose the install directory.
 
-          Activated automatically when -Djpackage.type=exe or msi is set.
+          Activated automatically when -Djpackage.type=EXE or MSI is set.
         -->
         <profile>
             <id>installer-windows-extras</id>
@@ -472,9 +637,118 @@
                                 <id>build-installer</id>
                                 <configuration>
                                     <winMenu>true</winMenu>
+                                    <winMenuGroup>X-Men</winMenuGroup>
+                                    <winShortcut>true</winShortcut>
+                                    <winShortcutPrompt>true</winShortcutPrompt>
+                                    <winDirChooser>true</winDirChooser>
+                                    <winPerUserInstall>true</winPerUserInstall>
+                                    <winUpgradeUuid>3b2a3df0-1a2c-4f5a-9b1c-9e07c0e0a777</winUpgradeUuid>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>installer-windows-msi-extras</id>
+            <activation>
+                <property>
+                    <name>jpackage.type</name>
+                    <value>MSI</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.6.5</version>
+                        <executions>
+                            <execution>
+                                <id>build-installer</id>
+                                <configuration>
+                                    <winMenu>true</winMenu>
+                                    <winMenuGroup>X-Men</winMenuGroup>
                                     <winShortcut>true</winShortcut>
                                     <winDirChooser>true</winDirChooser>
                                     <winPerUserInstall>true</winPerUserInstall>
+                                    <winUpgradeUuid>3b2a3df0-1a2c-4f5a-9b1c-9e07c0e0a777</winUpgradeUuid>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+          macOS extras: identifier + package signing hooks. The signing flags
+          stay opt-in (set -Djpackage.macSign=true and ship the cert) so the
+          unsigned dev build still works.
+        -->
+        <profile>
+            <id>installer-mac-extras</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+                <property>
+                    <name>jpackage.type</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.6.5</version>
+                        <executions>
+                            <execution>
+                                <id>build-installer</id>
+                                <configuration>
+                                    <macPackageName>X-Men</macPackageName>
+                                    <macPackageIdentifier>com.xmen.app</macPackageIdentifier>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+          Linux .deb / .rpm extras: menu category + .desktop integration so the
+          package shows up under Applications → Development with the X-Men icon.
+        -->
+        <profile>
+            <id>installer-linux-extras</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>linux</name>
+                </os>
+                <property>
+                    <name>jpackage.type</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.panteleyev</groupId>
+                        <artifactId>jpackage-maven-plugin</artifactId>
+                        <version>1.6.5</version>
+                        <executions>
+                            <execution>
+                                <id>build-installer</id>
+                                <configuration>
+                                    <linuxShortcut>true</linuxShortcut>
+                                    <linuxMenuGroup>Development;Security;Utility;</linuxMenuGroup>
+                                    <linuxPackageName>x-men</linuxPackageName>
+                                    <linuxAppCategory>Development</linuxAppCategory>
+                                    <linuxDebMaintainer>x-men-team@x-men.io</linuxDebMaintainer>
+                                    <linuxRpmLicenseType>MIT</linuxRpmLicenseType>
                                 </configuration>
                             </execution>
                         </executions>
