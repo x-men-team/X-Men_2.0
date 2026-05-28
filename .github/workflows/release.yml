@@ -41,6 +41,10 @@ jobs:
           java-version: "21"
           cache: maven
 
+      - name: Make Maven wrapper executable
+        if: runner.os != 'Windows'
+        run: chmod +x ./mvnw
+
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: |
