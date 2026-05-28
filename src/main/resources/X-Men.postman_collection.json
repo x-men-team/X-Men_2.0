@@ -1,0 +1,1065 @@
+{
+	"info": {
+		"_postman_id": "c471b225-f9be-4f6c-be1c-0af6409d6917",
+		"name": "X-Men",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39727841"
+	},
+	"item": [
+		{
+			"name": "Health Checks",
+			"item": [
+				{
+					"name": "Actuator",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/actuator/health/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"actuator",
+								"health",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Individual Endpoints",
+			"item": [
+				{
+					"name": "1. Skip Send",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/skip/sendMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"skip",
+								"sendMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Skip Receive",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/skip/receiveMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"skip",
+								"receiveMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Skip Send Receive",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/skip/sendReceiveMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"skip",
+								"sendReceiveMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Skip Receive Send",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/skip/receiveSendMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"skip",
+								"receiveSendMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Skip Receive Send Receive",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/skip/receiveSendReceiveMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"skip",
+								"receiveSendReceiveMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Add Mutation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/addMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"addMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Replace Sub-messages",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/replace/subMessagesMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"replace",
+								"subMessagesMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Replace Type",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/replace/typeMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"replace",
+								"typeMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "9. Neglect Mutation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/neglect/mutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"neglect",
+								"mutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "10. Forget Mutation (Simple Input)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/forget/mutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"forget",
+								"mutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "11. Forget Mutation (Complex Input -> Run Derivation Service First)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Haskell-Activate",
+								"value": "true"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/forget/mutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"forget",
+								"mutations"
+							]
+						},
+						"description": "Generated from cURL: \ncurl -X POST \"http://localhost:8081/api/forget/mutations\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -H \"Haskell-Activate: true\" \\\n  -F \"file=@path/to/your/input.spthy\"\n"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Mutations (Generate Mutations)",
+			"item": [
+				{
+					"name": "1. Skip Send",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Skip-Send",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Skip Receive",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Skip-Receive",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Skip Send Receive",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Skip-Send-Receive",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Skip Receive Send",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Skip-Receive-Send",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Skip Receive Send Receive",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Skip-Receive-Send-Receive",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Add Mutation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Add-Mutation",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "7. Replace Sub-messages",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Replace-Sub-Messages",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "True-Replace",
+								"value": "true",
+								"type": "text",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "8. Replace Type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Replace-Type",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "9. Neglect Mutation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Neglect-Mutation",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "10. Trigger All Mutations",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Skip-Send",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Skip-Receive",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Skip-Send-Receive",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Skip-Receive-Send",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Skip-Receive-Send-Receive",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Add-Mutation",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Replace-Sub-Messages",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Replace-Type",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Neglect-Mutation",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Forget-Mutation",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "True-Replace",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "11. Add Replace Submessages Combined",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Add-Mutation",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Replace-Sub-Messages",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Replace-Type",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "12. Add Replace Submessages Only",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Replace-Sub-Messages",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "True-Replace",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "13. Forget Mutation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Forget-Mutation",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "True-Replace",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				},
+				{
+					"name": "14. Forget Mutation - Haskell Script",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Forget-Mutation",
+								"value": "true",
+								"type": "text"
+							},
+							{
+								"key": "Haskell-Activate",
+								"value": "true",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8081/api/generateMutations",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"api",
+								"generateMutations"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST -F \"file=@/path/to/your/file\" http://localhost:8080/api/skipSendMutation"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Derivation Service",
+			"item": [
+				{
+					"name": "Derivation (Sample Request)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "derive ex_f1 ex_r",
+							"options": {
+								"raw": {
+									"language": "text"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:9091/derive",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9091",
+							"path": [
+								"derive"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST http://localhost:9091/derive -H \"Content-Type: text/plain\" -d \"any body\"\r\n"
+					},
+					"response": []
+				},
+				{
+					"name": "Healthcheck",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:9091/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9091",
+							"path": [
+								"health"
+							]
+						},
+						"description": "Generated from cURL: curl -X POST http://localhost:9091/derive -H \"Content-Type: text/plain\" -d \"any body\"\r\n"
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
