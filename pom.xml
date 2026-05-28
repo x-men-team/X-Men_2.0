@@ -395,79 +395,27 @@
                 </executions>
             </plugin>
 
-            <!-- maven-shade-plugin: Moved here under <plugins>, not <dependencies> -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <!--
-                              Silence the "Discovered module-info.class" and
-                              "overlapping resource" warning storm by:
-                                * filtering out module-info.class from every
-                                  dependency before shading,
-                                * dropping the duplicated license / notice /
-                                  metadata files that show up in many JARs, and
-                                * merging the spring.tooling/aot/MANIFEST entries
-                                  via dedicated transformers so shade no longer
-                                  flags them as conflicts.
-                            -->
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>module-info.class</exclude>
-                                        <exclude>META-INF/versions/*/module-info.class</exclude>
-                                        <exclude>META-INF/LICENSE</exclude>
-                                        <exclude>META-INF/LICENSE.txt</exclude>
-                                        <exclude>META-INF/LICENSE.md</exclude>
-                                        <exclude>META-INF/license.txt</exclude>
-                                        <exclude>META-INF/NOTICE</exclude>
-                                        <exclude>META-INF/NOTICE.txt</exclude>
-                                        <exclude>META-INF/NOTICE.md</exclude>
-                                        <exclude>META-INF/notice.txt</exclude>
-                                        <exclude>META-INF/DEPENDENCIES</exclude>
-                                        <exclude>META-INF/COPYRIGHT</exclude>
-                                        <exclude>META-INF/io.netty.versions.properties</exclude>
-                                        <exclude>META-INF/substrate/**</exclude>
-                                        <exclude>META-INF/additional-spring-configuration-metadata.json</exclude>
-                                        <exclude>META-INF/spring-autoconfigure-metadata.properties</exclude>
-                                        <exclude>META-INF/spring-configuration-metadata.json</exclude>
-                                        <exclude>META-INF/spring.tooling</exclude>
-                                        <exclude>META-INF/spring/aot.factories</exclude>
-                                        <exclude>META-INF/web-fragment.xml</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers combine.self="override">
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"/>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/spring.factories</resource>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/spring.handlers</resource>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/spring.schemas</resource>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                    <resource>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</resource>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--
+              The maven-shade-plugin was previously layered on top of
+              spring-boot:repackage to silence dependency-metadata warnings.
+              That layering flattened Spring Boot's own classes (Launcher,
+              YamlPropertySourceLoader, snakeyaml, META-INF/spring.factories,
+              AutoConfiguration.imports, …) into the jar root, alongside the
+              proper BOOT-INF/{classes,lib} layout produced by repackage.
+              In the packaged build that caused the system ClassLoader to
+              resolve Spring Boot's classes from the jar root before the
+              LaunchedURLClassLoader could see them, which meant
+              BOOT-INF/classes/application.yaml was never consumed:
+              `server.port` fell back to 8080 (the JavaFX UI hard-codes 8081),
+              `xmen.themes`/`xmen.vocabulary` config-properties beans loaded
+              empty, and the Settings dialog rendered empty Theme, Profiles,
+              and Preferences lists.
+
+              Spring Boot's repackage already produces a working executable
+              fat jar, so shade was purely cosmetic — removing it is the fix.
+              The warnings it was muting are harmless and only appear at
+              build time.
+            -->
 
         </plugins>
     </build>
