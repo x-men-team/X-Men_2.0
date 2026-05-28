@@ -382,6 +382,7 @@
             <properties>
                 <jpackage.type>APP_IMAGE</jpackage.type>
                 <jpackage.appVersion>1.0.0</jpackage.appVersion>
+                <jpackage.icon>${project.basedir}/src/main/resources/packaging/x-men-icon.png</jpackage.icon>
             </properties>
 
             <build>
@@ -431,8 +432,9 @@
                                     <input>${project.build.directory}/jpackage-input</input>
                                     <destination>${project.build.directory}/dist</destination>
                                     <mainJar>${project.build.finalName}.jar</mainJar>
-                                    <mainClass>com.xmen.user_interface.XMenInterface</mainClass>
+                                    <mainClass>org.springframework.boot.loader.launch.JarLauncher</mainClass>
                                     <type>${jpackage.type}</type>
+                                    <icon>${jpackage.icon}</icon>
                                     <javaOptions>
                                         <option>-Djava.awt.headless=false</option>
                                     </javaOptions>

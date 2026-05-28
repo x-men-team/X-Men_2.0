@@ -21,14 +21,17 @@ jobs:
             package_type: EXE
             asset_name: X-Men.exe
             artifact_glob: target/dist/*.exe
-          - os: macos-latest
+            package_icon: src/main/resources/packaging/x-men-icon.ico
+          - os: macos-13
             package_type: DMG
             asset_name: X-Men.dmg
             artifact_glob: target/dist/*.dmg
+            package_icon: src/main/resources/packaging/x-men-icon.icns
           - os: ubuntu-latest
             package_type: DEB
             asset_name: X-Men.deb
             artifact_glob: target/dist/*.deb
+            package_icon: src/main/resources/packaging/x-men-icon.png
 
     steps:
       - name: Check out repository
@@ -45,6 +48,19 @@ jobs:
         if: runner.os != 'Windows'
         run: chmod +x ./mvnw
 
+      - name: Generate macOS app icon
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          iconset=target/x-men.iconset
+          mkdir -p "$iconset"
+          for size in 16 32 128 256 512; do
+            sips -z "$size" "$size" src/main/resources/packaging/x-men-icon.png --out "$iconset/icon_${size}x${size}.png"
+            sips -z "$((size * 2))" "$((size * 2))" src/main/resources/packaging/x-men-icon.png --out "$iconset/icon_${size}x${size}@2x.png"
+          done
+          iconutil -c icns "$iconset" -o src/main/resources/packaging/x-men-icon.icns
+
       - name: Install Linux packaging tools
         if: runner.os == 'Linux'
         run: |
@@ -53,7 +69,12 @@ jobs:
 
       - name: Build installer
         shell: bash
-        run: ./mvnw -P installer -Djpackage.type=${{ matrix.package_type }} -DskipTests clean package
+        run: |
+          app_version="${GITHUB_REF_NAME#v}"
+          if [[ ! "$app_version" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+            app_version="1.0.1"
+          fi
+          ./mvnw -P installer -Djpackage.type=${{ matrix.package_type }} -Djpackage.icon=${{ matrix.package_icon }} -Djpackage.appVersion="$app_version" -DskipTests clean package
 
       - name: Normalize asset name
         shell: bash
