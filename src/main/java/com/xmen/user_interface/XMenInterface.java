@@ -1152,9 +1152,13 @@ public class XMenInterface extends Application {
     // belong to the choice above rather than being top-level toggles.
     Insets subOptionIndent = new Insets(0, 0, 0, 24);
 
-    // Infinite first, then Specified, then Limited (per spec).
+    // Visible derivation choices: Infinite and Specified Depth. The Limited
+    // option is intentionally kept out of the scene graph for now — backend
+    // wiring (LIMITED enum, /api/forget header handling, the rbDerivationLimited
+    // toggle itself) is preserved unchanged so it can be re-surfaced later
+    // without a coordinated server change.
     HBox derivationRadios =
-        new HBox(20, rbDerivationInfinite, rbDerivationSpecified, rbDerivationLimited);
+        new HBox(20, rbDerivationInfinite, rbDerivationSpecified);
     derivationRadios.setAlignment(Pos.CENTER_LEFT);
     checkboxPanel.add(new Label(""), 0, 6);
     checkboxPanel.add(derivationRadios, 1, 6);

@@ -18,6 +18,15 @@ jobs:
   build:
     name: Build ${{ matrix.asset_name }}
     runs-on: ${{ matrix.os }}
+    # Per-job timeout caps the macos-13 (Intel) job at 60 min so a scarce
+    # Intel-runner queue can't hold the release open forever. The fast jobs
+    # finish in <15 min, so this is only relevant when Apple-Silicon-only
+    # runner pools delay an Intel pick-up.
+    timeout-minutes: ${{ matrix.timeout_minutes }}
+    # macos-13 Intel availability fluctuates; let the other three platforms
+    # publish even if Intel ends up timing out. The user can re-run just the
+    # X-Men-x64.dmg job from the workflow page when capacity returns.
+    continue-on-error: ${{ matrix.continue_on_error }}
     strategy:
       fail-fast: false
       matrix:
@@ -26,18 +35,26 @@ jobs:
             package_type: EXE
             asset_name: X-Men.exe
             artifact_glob: target/dist/*.exe
+            timeout_minutes: 45
+            continue_on_error: false
           - os: macos-13          # Intel runner — produces an x86_64 .dmg that runs on Intel Macs
             package_type: DMG
             asset_name: X-Men-x64.dmg
             artifact_glob: target/dist/*.dmg
+            timeout_minutes: 60
+            continue_on_error: true
           - os: macos-14          # Apple Silicon runner — produces an arm64 .dmg
             package_type: DMG
             asset_name: X-Men-arm64.dmg
             artifact_glob: target/dist/*.dmg
+            timeout_minutes: 45
+            continue_on_error: false
           - os: ubuntu-latest
             package_type: DEB
             asset_name: X-Men.deb
             artifact_glob: target/dist/*.deb
+            timeout_minutes: 30
+            continue_on_error: false
 
     steps:
       - name: Check out repository
