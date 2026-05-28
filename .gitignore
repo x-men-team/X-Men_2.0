@@ -15,6 +15,7 @@ dependency-reduced-pom.xml
 .sts4-cache
 
 ### IntelliJ IDEA ###
+.claude/
 .idea
 *.iws
 *.iml

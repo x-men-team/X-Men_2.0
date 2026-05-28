@@ -1,0 +1,79 @@
+name: Build Release Installers
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            package_type: EXE
+            asset_name: X-Men.exe
+            artifact_glob: target/dist/*.exe
+          - os: macos-latest
+            package_type: DMG
+            asset_name: X-Men.dmg
+            artifact_glob: target/dist/*.dmg
+          - os: ubuntu-latest
+            package_type: DEB
+            asset_name: X-Men.deb
+            artifact_glob: target/dist/*.deb
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot
+
+      - name: Build installer
+        shell: bash
+        run: ./mvnw -P installer -Djpackage.type=${{ matrix.package_type }} -DskipTests clean package
+
+      - name: Normalize asset name
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          shopt -s nullglob
+          matches=( ${{ matrix.artifact_glob }} )
+          if [ ${#matches[@]} -ne 1 ]; then
+            echo "Expected exactly one installer matching '${{ matrix.artifact_glob }}', found ${#matches[@]}"
+            printf '%s\n' "${matches[@]}"
+            exit 1
+          fi
+          cp "${matches[0]}" "release-assets/${{ matrix.asset_name }}"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: release-assets/${{ matrix.asset_name }}
+          if-no-files-found: error
+
+      - name: Upload GitHub Release asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release-assets/${{ matrix.asset_name }}
