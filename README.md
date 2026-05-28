@@ -24,6 +24,7 @@
 ## ✨ Table of Contents
 
 - [About The Project](#-about-the-project)
+- [Downloads](#-downloads)
 - [Built With](#-built-with)
 - [Architecture at a Glance](#-architecture-at-a-glance)
 - [Getting Started](#-getting-started)
@@ -89,6 +90,18 @@ models that Tamarin can analyse end-to-end, surfacing attacks that depend on
 human mistakes rather than cryptographic weaknesses.
 
 </details>
+
+---
+
+## 📦 Downloads
+
+Installers are attached to the latest GitHub Release:
+
+| Platform | Installer |
+| --- | --- |
+| Windows | [X-Men.exe](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.exe) |
+| macOS | [X-Men.dmg](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.dmg) |
+| Linux | [X-Men.deb](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.deb) |
 
 ---
 
