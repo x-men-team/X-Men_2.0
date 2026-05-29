@@ -1473,8 +1473,20 @@ public final class MainSceneFactory {
   /**
    * Slow opacity cycle on the smoke pane. The pane does not translate: the
    * background and theme overlay must remain pinned to the window edges.
+   *
+   * <p>The smoke layer uses two stacked CSS radial-gradients; tweening its
+   * opacity forces the renderer to recomposite both gradients on every
+   * frame. Combined with the chat-icon DropShadow pulse, this was enough
+   * to keep the iGPU busy on Intel macOS even when no video was playing
+   * (heat / display-sleep complaints in 1.0.0). The same kill switch that
+   * disables the videos also stops this drift; the smoke layer stays
+   * painted at a constant opacity so the visual still reads correctly.
    */
   private static void animateSmoke(Pane smoke) {
+    if (!isBackgroundVideoEnabled()) {
+      smoke.setOpacity(0.16);
+      return;
+    }
     javafx.animation.Timeline drift = new javafx.animation.Timeline(
         new javafx.animation.KeyFrame(Duration.ZERO,
             new javafx.animation.KeyValue(smoke.opacityProperty(), 0.12,

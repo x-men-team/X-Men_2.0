@@ -792,31 +792,44 @@ public class XMenInterface extends Application {
 
       if (chatIconPulse != null) {
         chatIconPulse.stop();
+        chatIconPulse = null;
       }
 
-      chatIconPulse =
-              new Timeline(
-                      new KeyFrame(
-                              Duration.ZERO,
-                              new KeyValue(glow.radiusProperty(), charcoalMono ? 10 : 18, Interpolator.EASE_BOTH),
-                              new KeyValue(glow.spreadProperty(), charcoalMono ? 0.18 : 0.34, Interpolator.EASE_BOTH),
-                              new KeyValue(iconWrap.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
-                              new KeyValue(iconWrap.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)),
-                      new KeyFrame(
-                              Duration.seconds(1.8),
-                              new KeyValue(glow.radiusProperty(), charcoalMono ? 18 : 32, Interpolator.EASE_BOTH),
-                              new KeyValue(glow.spreadProperty(), charcoalMono ? 0.32 : 0.52, Interpolator.EASE_BOTH),
-                              new KeyValue(iconWrap.scaleXProperty(), 1.08, Interpolator.EASE_BOTH),
-                              new KeyValue(iconWrap.scaleYProperty(), 1.08, Interpolator.EASE_BOTH)),
-                      new KeyFrame(
-                              Duration.seconds(3.6),
-                              new KeyValue(glow.radiusProperty(), charcoalMono ? 10 : 18, Interpolator.EASE_BOTH),
-                              new KeyValue(glow.spreadProperty(), charcoalMono ? 0.18 : 0.34, Interpolator.EASE_BOTH),
-                              new KeyValue(iconWrap.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
-                              new KeyValue(iconWrap.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)));
+      // The pulse animates DropShadow.radius + .spread, which are filter
+      // parameters: every keyframe forces the rasterised glow bitmap to be
+      // regenerated, defeating iconWrap's cache. On Intel macOS that loop
+      // pegs the iGPU and was the cause of the heat / display-sleep
+      // complaints (the bg/splash videos were already disabled there, so
+      // the chat icon was the only continuous GPU load left).
+      // Same kill switch as the videos: off on macOS x86_64 by default,
+      // overridable via XMEN_BG_VIDEO. The static DropShadow above stays,
+      // so the icon still looks themed — only the per-frame animation is
+      // dropped.
+      if (MainSceneFactory.isBackgroundVideoEnabled()) {
+        chatIconPulse =
+                new Timeline(
+                        new KeyFrame(
+                                Duration.ZERO,
+                                new KeyValue(glow.radiusProperty(), charcoalMono ? 10 : 18, Interpolator.EASE_BOTH),
+                                new KeyValue(glow.spreadProperty(), charcoalMono ? 0.18 : 0.34, Interpolator.EASE_BOTH),
+                                new KeyValue(iconWrap.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
+                                new KeyValue(iconWrap.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)),
+                        new KeyFrame(
+                                Duration.seconds(1.8),
+                                new KeyValue(glow.radiusProperty(), charcoalMono ? 18 : 32, Interpolator.EASE_BOTH),
+                                new KeyValue(glow.spreadProperty(), charcoalMono ? 0.32 : 0.52, Interpolator.EASE_BOTH),
+                                new KeyValue(iconWrap.scaleXProperty(), 1.08, Interpolator.EASE_BOTH),
+                                new KeyValue(iconWrap.scaleYProperty(), 1.08, Interpolator.EASE_BOTH)),
+                        new KeyFrame(
+                                Duration.seconds(3.6),
+                                new KeyValue(glow.radiusProperty(), charcoalMono ? 10 : 18, Interpolator.EASE_BOTH),
+                                new KeyValue(glow.spreadProperty(), charcoalMono ? 0.18 : 0.34, Interpolator.EASE_BOTH),
+                                new KeyValue(iconWrap.scaleXProperty(), 0.98, Interpolator.EASE_BOTH),
+                                new KeyValue(iconWrap.scaleYProperty(), 0.98, Interpolator.EASE_BOTH)));
 
-      chatIconPulse.setCycleCount(Animation.INDEFINITE);
-      chatIconPulse.play();
+        chatIconPulse.setCycleCount(Animation.INDEFINITE);
+        chatIconPulse.play();
+      }
 
       howItWorksButton.setGraphic(iconWrap);
       howItWorksButton.setGraphicTextGap(0);
