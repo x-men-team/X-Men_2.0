@@ -37,13 +37,21 @@ jobs:
             artifact_glob: target/dist/*.exe
             timeout_minutes: 45
             continue_on_error: false
-          - os: macos-13          # Intel runner — produces an x86_64 .dmg that runs on Intel Macs
+          # Intel-Mac (macos-13) builds the x86_64 .dmg on a runner that runs
+          # natively on Apple Silicon (macos-14) by routing the entire JDK +
+          # jpackage toolchain through Rosetta 2 with `arch -x86_64`. The
+          # macos-13 hosted-runner pool was consistently failing to pick up
+          # jobs (>8 h queue), so the previous matrix entry timed the release
+          # out instead of publishing. macos-14 has reliable capacity.
+          - os: macos-14
+            arch: x64
             package_type: DMG
             asset_name: X-Men-x64.dmg
             artifact_glob: target/dist/*.dmg
             timeout_minutes: 60
-            continue_on_error: true
-          - os: macos-14          # Apple Silicon runner — produces an arm64 .dmg
+            continue_on_error: false
+          - os: macos-14          # Apple Silicon runner — produces an arm64 .dmg natively
+            arch: arm64
             package_type: DMG
             asset_name: X-Men-arm64.dmg
             artifact_glob: target/dist/*.dmg
@@ -60,11 +68,26 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 21 (host arch)
+        if: matrix.arch != 'x64' || runner.os != 'macOS'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
+          cache: maven
+
+      # For the Intel-Mac dmg: install the x86_64 Temurin 21 JDK on the
+      # Apple-Silicon runner. The whole build then runs under Rosetta 2
+      # (via `arch -x86_64 …`) so jpackage produces an x86_64 launcher and
+      # bundles an x86_64 JRE — the resulting .dmg runs natively on Intel
+      # Macs without Rosetta.
+      - name: Set up x86_64 JDK 21 (Intel Mac cross-arch)
+        if: matrix.arch == 'x64' && runner.os == 'macOS'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          architecture: x64
           cache: maven
 
       - name: Make Maven wrapper executable
@@ -111,14 +134,24 @@ jobs:
 
       # The OS-aware profiles in pom.xml pick the right --icon for each
       # platform, so callers only need -Djpackage.type and -Djpackage.appVersion.
+      # The Intel-Mac job wraps the whole build in `arch -x86_64` so jpackage
+      # and Maven run under Rosetta 2 and emit x86_64 binaries.
       - name: Build installer
         shell: bash
         run: |
-          ./mvnw -B -ntp -P installer \
-            -Djpackage.type=${{ matrix.package_type }} \
-            -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
-            -DskipTests \
-            clean package
+          if [[ "${{ matrix.arch }}" == "x64" && "$RUNNER_OS" == "macOS" ]]; then
+            arch -x86_64 ./mvnw -B -ntp -P installer \
+              -Djpackage.type=${{ matrix.package_type }} \
+              -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
+              -DskipTests \
+              clean package
+          else
+            ./mvnw -B -ntp -P installer \
+              -Djpackage.type=${{ matrix.package_type }} \
+              -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
+              -DskipTests \
+              clean package
+          fi
 
       - name: Normalize asset name
         shell: bash
