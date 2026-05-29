@@ -1,0 +1,84 @@
+#!/bin/sh
+# jpackage Debian postinst script for x-men.
+#
+# Why we need this: the default postinst that jpackage generates only refreshes
+# the .desktop database. Modern Ubuntu (22.04+) GNOME Software / KDE Discover /
+# elementary AppCenter only show installed apps that publish AppStream metadata
+# under /usr/share/metainfo/. Without that file, the package installs cleanly
+# but does not appear in the OS "Installed Apps" GUI — so users can't uninstall
+# it from the graphical control plane and have to drop to a terminal. We fix
+# that here by writing an AppStream metainfo XML for the X-Men component.
+
+set -e
+
+case "$1" in
+    configure)
+        # Refresh desktop database so the .desktop entry is picked up immediately.
+        if [ -x "$(command -v update-desktop-database 2>/dev/null)" ]; then
+            update-desktop-database -q /usr/share/applications/ || true
+        fi
+
+        # Refresh icon caches so the launcher icon paints without a reboot.
+        if [ -x "$(command -v gtk-update-icon-cache 2>/dev/null)" ]; then
+            gtk-update-icon-cache -q -f -t /usr/share/icons/hicolor || true
+        fi
+
+        # Drop the AppStream metainfo so GNOME Software / KDE Discover list it
+        # and expose an "Uninstall" button.
+        mkdir -p /usr/share/metainfo
+        cat > /usr/share/metainfo/com.xmen.app.metainfo.xml <<'METAINFO_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.xmen.app</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>X-Men</name>
+  <summary>Mutation-based formal analysis of security ceremonies</summary>
+  <description>
+    <p>
+      X-Men turns ceremony specifications into actionable mutation traces.
+      It models the human in the loop — forgetting, slipping, mistyping — and
+      feeds Tamarin the variants that matter so designers can prove or break
+      ceremony goals before they ship.
+    </p>
+  </description>
+  <launchable type="desktop-id">x-men-X-Men.desktop</launchable>
+  <provides>
+    <binary>X-Men</binary>
+  </provides>
+  <url type="homepage">https://github.com/x-men-team/X-Men_2.0</url>
+  <url type="bugtracker">https://github.com/x-men-team/X-Men_2.0/issues</url>
+  <developer_name>X-Men</developer_name>
+  <categories>
+    <category>Development</category>
+    <category>Security</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="1.0.0" date="2026-05-29">
+      <description>
+        <p>Cross-platform installers (Windows EXE, macOS Intel + Apple Silicon DMGs, Linux DEB) with always-on splash + background videos, scrollable mutation panel, Linux file-picker fixes, and AppStream registration so the package shows up in the OS uninstaller.</p>
+      </description>
+    </release>
+  </releases>
+  <update_contact>x-men-team@x-men.io</update_contact>
+</component>
+METAINFO_EOF
+        chmod 644 /usr/share/metainfo/com.xmen.app.metainfo.xml
+
+        # Refresh AppStream cache if the tool is present.
+        if [ -x "$(command -v appstreamcli 2>/dev/null)" ]; then
+            appstreamcli refresh-cache --force >/dev/null 2>&1 || true
+        fi
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

@@ -424,6 +424,19 @@ XMEN_BG_VIDEO`) to re-enable the videos.
 Fedora / RHEL builds are not currently published — `mvnw clean package -P installer -Djpackage.type=RPM`
 on a Fedora host produces a working `.rpm` if you need one.
 
+### 🧹 Uninstalling X-Men
+
+| OS | How to uninstall |
+| --- | --- |
+| **Windows** | *Settings* ▸ *Apps* ▸ *Installed apps* ▸ find **X-Men** ▸ **Uninstall**. The installer registered itself per-user, so administrator rights are not required. |
+| **macOS** | Drag **X-Men.app** from `/Applications` to the Trash. To also clear runtime data run `rm -rf ~/.xmen ~/Library/Application\ Support/X-Men` in Terminal. |
+| **Linux (Debian/Ubuntu)** | Open *Ubuntu Software* (or *GNOME Software* / *KDE Discover*) ▸ *Installed* ▸ **X-Men** ▸ **Uninstall**.  Or from a terminal: `sudo apt remove x-men` (preferred) or `sudo dpkg -r x-men`. |
+
+> 💡 **Linux note**: The .deb registers AppStream metadata at install time so
+> the OS Software Center can list and uninstall it without a terminal. If
+> your distro hides .deb apps from the GUI Software Center (some snap-only
+> setups do), `sudo apt remove x-men` always works.
+
 ---
 
 ## ▶️ Running your first mutation

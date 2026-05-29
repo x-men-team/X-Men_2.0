@@ -94,26 +94,15 @@ public final class MainSceneFactory {
   }
 
   /**
-   * Decide whether the background-video rotator should run. The rotator drives
-   * the JavaFX media stack hard (multi-clip rotation, crossfade between
-   * pre-buffered MediaPlayer instances) and on Intel macOS that stack regularly
-   * fails with {@code ERROR_MEDIA_INVALID}; the leaked native graphics handles
-   * have been observed to wedge the WindowServer until the user force-restarts
-   * the Mac. We therefore:
+   * Decide whether the background-video rotator should run. Default: ON for
+   * every supported OS/arch — the brand-defining splash + main scene loop is
+   * part of the product, and the cross-fade rotator has been hardened with a
+   * startup watchdog, heartbeat, and a JAR-extraction worker thread so it
+   * stays smooth even on lower-end Intel laptops.
    *
-   * <ul>
-   *   <li>Skip the rotator by default on macOS x86_64 (Intel Mac, including the
-   *       Rosetta-translated x86_64 build running on Apple Silicon hosts).
-   *   <li>Honour an explicit {@code -Dxmen.bg.video.enabled=false} or
-   *       {@code XMEN_BG_VIDEO=false} kill switch on any platform so users
-   *       hitting black-screen freezes elsewhere can disable it without a code
-   *       change.
-   *   <li>Honour the inverse — {@code XMEN_BG_VIDEO=true} — so power users on
-   *       Intel Mac can opt back in if their hardware copes.
-   * </ul>
-   *
-   * The fallback background image (set up by {@link #buildBackgroundFallback})
-   * stays in place when the rotator is disabled, so the UI never looks empty.
+   * <p>Power users can still opt out with {@code -Dxmen.bg.video.enabled=false}
+   * or {@code XMEN_BG_VIDEO=false}; in that case the static fallback image
+   * stays on screen and {@link #animateSmoke} pins the haze opacity.
    */
   static boolean isBackgroundVideoEnabled() {
     String override =
@@ -122,15 +111,6 @@ public final class MainSceneFactory {
             System.getenv("XMEN_BG_VIDEO"));
     if (override != null && !override.isBlank()) {
       return Boolean.parseBoolean(override.trim());
-    }
-    String osName = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
-    String osArch = System.getProperty("os.arch", "").toLowerCase(java.util.Locale.ROOT);
-    boolean isMac = osName.contains("mac") || osName.contains("darwin");
-    boolean isIntel = osArch.contains("x86") || osArch.contains("amd64");
-    if (isMac && isIntel) {
-      log.info("Background video disabled by default on macOS x86_64 to avoid GStreamer/WindowServer hangs. "
-          + "Set XMEN_BG_VIDEO=true to opt back in.");
-      return false;
     }
     return true;
   }

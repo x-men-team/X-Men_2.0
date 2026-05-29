@@ -1,0 +1,37 @@
+#!/bin/sh
+# jpackage Debian prerm script for x-men.
+#
+# Runs before the package is removed (apt remove / dpkg -r / GUI uninstall).
+# We clean up the AppStream metainfo we wrote in postinst so it doesn't get
+# orphaned, and refresh the desktop / icon caches so the launcher entry
+# disappears from the Activities view without a session restart.
+
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        rm -f /usr/share/metainfo/com.xmen.app.metainfo.xml
+
+        if [ -x "$(command -v update-desktop-database 2>/dev/null)" ]; then
+            update-desktop-database -q /usr/share/applications/ || true
+        fi
+
+        if [ -x "$(command -v gtk-update-icon-cache 2>/dev/null)" ]; then
+            gtk-update-icon-cache -q -f -t /usr/share/icons/hicolor || true
+        fi
+
+        if [ -x "$(command -v appstreamcli 2>/dev/null)" ]; then
+            appstreamcli refresh-cache --force >/dev/null 2>&1 || true
+        fi
+        ;;
+
+    failed-upgrade)
+        ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+exit 0

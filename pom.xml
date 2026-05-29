@@ -683,7 +683,20 @@
 
         <!--
           Linux .deb / .rpm extras: menu category + .desktop integration so the
-          package shows up under Applications → Development with the X-Men icon.
+          package shows up under Applications -> Development with the X-Men
+          icon, AND so it appears in the OS uninstaller (GNOME Software /
+          KDE Discover / elementary AppCenter).
+
+          The resourceDir override ships custom Debian postinst + prerm scripts
+          that write an AppStream metainfo XML into /usr/share/metainfo/. Modern
+          Ubuntu (22.04+) and similar distros only list installed apps in their
+          graphical control plane when AppStream metadata is present — without
+          this the user has to drop to a terminal (`sudo apt remove x-men`)
+          to uninstall, which is the symptom we are fixing.
+
+          linuxAppRelease pins the Debian release suffix so the resulting file
+          is reproducibly named x-men_1.0.0-1_amd64.deb and dpkg can compute
+          proper upgrade ordering across versions.
         -->
         <profile>
             <id>installer-linux-extras</id>
@@ -712,6 +725,8 @@
                                     <linuxAppCategory>Development</linuxAppCategory>
                                     <linuxDebMaintainer>x-men-team@x-men.io</linuxDebMaintainer>
                                     <linuxRpmLicenseType>MIT</linuxRpmLicenseType>
+                                    <linuxAppRelease>1</linuxAppRelease>
+                                    <resourceDir>${project.basedir}/src/main/resources/packaging/linux</resourceDir>
                                 </configuration>
                             </execution>
                         </executions>

@@ -303,13 +303,13 @@ public class XMenInterface extends Application {
     }
     boolean videoLoaded = false;
 
-    // Same kill switch as the background-video rotator: skip the splash MP4 on
-    // platforms where the JavaFX media stack has been observed to hang the OS
-    // (Intel macOS by default; user-overridable via XMEN_BG_VIDEO). The
-    // fallback logo image stays on screen for the watchdog's 12 s before the
-    // main scene takes over, so the launch sequence still feels intentional.
+    // Honour the shared opt-out kill switch (XMEN_BG_VIDEO=false /
+    // -Dxmen.bg.video.enabled=false). Default is ON for every OS/arch — the
+    // splash video is part of the brand. The fallback logo image stays on
+    // screen for the 12 s watchdog if videos are disabled, so the launch
+    // sequence still feels intentional for power users who opted out.
     if (!MainSceneFactory.isBackgroundVideoEnabled()) {
-      log.info("Splash video disabled by xmen.bg.video.enabled / OS default; using fallback image.");
+      log.info("Splash video disabled by xmen.bg.video.enabled override; using fallback image.");
       if (fallbackImage != null) fallbackImage.setVisible(true);
       splashRoot.setAlignment(Pos.CENTER);
       return null;
@@ -706,10 +706,21 @@ public class XMenInterface extends Application {
     // affordance instead of bunching them near the top.
     VBox.setVgrow(checkboxPanel, Priority.ALWAYS);
 
-    // No ScrollPane: all mutations are laid out flat inside the glass card.
-    // The chat affordance overlays the bottom-right corner so it no longer
-    // adds extra vertical height to the panel.
-    StackPane panelWrap = new StackPane(panelContent, panelFooter);
+    // ScrollPane wrap: when the stage is sized below the mutation panel's
+    // natural height (lots of checkbox rows + sub-options) the scroll bar
+    // appears instead of the rows overlapping each other. The chat
+    // affordance sits OUTSIDE the scroll viewport so it stays anchored to
+    // the bottom-right corner regardless of scroll position.
+    ScrollPane panelScroll = new ScrollPane(panelContent);
+    panelScroll.setFitToWidth(true);
+    panelScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+    panelScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+    panelScroll.setPannable(false);
+    panelScroll.getStyleClass().add("x-control-scroll");
+    // Lock the scrolled content to at-least its preferred height so rows
+    // never squish into each other; overflow goes to the scroll bar.
+    panelContent.setMinHeight(Region.USE_PREF_SIZE);
+    StackPane panelWrap = new StackPane(panelScroll, panelFooter);
     panelWrap.getStyleClass().add("x-control-panel");
     panelWrap.setMaxWidth(Double.MAX_VALUE);
     panelWrap.setMaxHeight(Double.MAX_VALUE);
@@ -795,16 +806,13 @@ public class XMenInterface extends Application {
         chatIconPulse = null;
       }
 
-      // The pulse animates DropShadow.radius + .spread, which are filter
-      // parameters: every keyframe forces the rasterised glow bitmap to be
-      // regenerated, defeating iconWrap's cache. On Intel macOS that loop
-      // pegs the iGPU and was the cause of the heat / display-sleep
-      // complaints (the bg/splash videos were already disabled there, so
-      // the chat icon was the only continuous GPU load left).
-      // Same kill switch as the videos: off on macOS x86_64 by default,
-      // overridable via XMEN_BG_VIDEO. The static DropShadow above stays,
-      // so the icon still looks themed — only the per-frame animation is
-      // dropped.
+      // The pulse animates DropShadow.radius + .spread along with iconWrap's
+      // scale. iconWrap.setCache(SPEED) above caches the rasterised glow so
+      // the per-frame work is a GPU transform + blend, not a fresh shadow
+      // filter pass. Power users on hardware that can't cope can still
+      // disable the animation via XMEN_BG_VIDEO=false (same env var as the
+      // background videos), in which case the static DropShadow stays and
+      // the icon still looks themed — just without the heartbeat.
       if (MainSceneFactory.isBackgroundVideoEnabled()) {
         chatIconPulse =
                 new Timeline(
@@ -923,7 +931,10 @@ public class XMenInterface extends Application {
     checkboxPanel.setVgap(20);
     checkboxPanel.setAlignment(Pos.TOP_LEFT);
     checkboxPanel.setMaxHeight(Double.MAX_VALUE);
-    checkboxPanel.setMinHeight(0);
+    // Pin the grid to its natural height so squeezing the stage vertically
+    // doesn't collapse mutation rows onto each other — the surrounding
+    // ScrollPane handles overflow by scrolling instead.
+    checkboxPanel.setMinHeight(Region.USE_PREF_SIZE);
 
     buttonUpload = new Button("Upload File");
     buttonUpload.setId("buttonUpload");
@@ -940,7 +951,8 @@ public class XMenInterface extends Application {
           fileChooser
               .getExtensionFilters()
               .add(new FileChooser.ExtensionFilter("XML Files", "*.*"));
-          File file = fileChooser.showOpenDialog(stage);
+          seedInitialDirectory(fileChooser);
+          File file = fileChooser.showOpenDialog(pickerOwner(stage));
           if (file != null) {
             selectedFile = file;
             clearGeneratedOutput();
@@ -1750,6 +1762,47 @@ public class XMenInterface extends Application {
     return base + "-Mutations.zip";
   }
 
+  /**
+   * Pick the owner Window to pass to {@code FileChooser.showXDialog}.
+   *
+   * <p>On Linux the native GTK chooser inherits the owner window's coords as
+   * its placement origin. When the owner is a maximized JavaFX stage on some
+   * window managers (KDE / wayland-on-X11 hybrid sessions in particular) the
+   * stage reports negative or out-of-bounds origins and the chooser ends up
+   * partially off-screen — which is what the user hit in the Linux .deb
+   * build. Passing {@code null} makes GTK center the chooser on the screen
+   * instead, which is always visible regardless of where the parent stage
+   * thinks it lives.
+   *
+   * <p>Windows and macOS keep the parent owner so the chooser is correctly
+   * modal to the X-Men window.
+   */
+  private static javafx.stage.Window pickerOwner(Stage stage) {
+    if (stage == null) return null;
+    String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+    if (os.contains("linux") || os.contains("nix")) {
+      return null;
+    }
+    return stage;
+  }
+
+  /**
+   * Default the FileChooser to the user's home directory if it doesn't have an
+   * initial directory set yet. Without this, an installed jpackage build opens
+   * the chooser in {@code /opt/x-men/} (the install root) on Linux and the app
+   * bundle's {@code Resources} directory on macOS — neither of which is where
+   * users keep their {@code .spthy} sources.
+   */
+  private static void seedInitialDirectory(FileChooser fc) {
+    if (fc.getInitialDirectory() != null && fc.getInitialDirectory().isDirectory()) return;
+    String home = System.getProperty("user.home");
+    if (home == null || home.isBlank()) return;
+    File dir = new File(home);
+    if (dir.isDirectory()) {
+      fc.setInitialDirectory(dir);
+    }
+  }
+
   /** Save the last generated zip to disk via a FileChooser. */
   private void downloadLastZip(Stage stage) {
     if (lastGeneratedZip == null || lastGeneratedZip.length == 0) {
@@ -1760,7 +1813,8 @@ public class XMenInterface extends Application {
     fc.setTitle("Save Mutation Output");
     fc.setInitialFileName(lastGeneratedZipName);
     fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Zip Archive", "*.zip"));
-    File out = fc.showSaveDialog(stage);
+    seedInitialDirectory(fc);
+    File out = fc.showSaveDialog(pickerOwner(stage));
     if (out == null) return;
     try (OutputStream os = Files.newOutputStream(out.toPath())) {
       os.write(lastGeneratedZip);
@@ -1821,9 +1875,11 @@ public class XMenInterface extends Application {
           fc.setTitle("Save Derivation Tree");
           fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text File", "*.txt"));
           fc.setInitialFileName("DerivationTree.txt");
+          seedInitialDirectory(fc);
+          javafx.stage.Window owner =
+              mainRoot.getScene() != null ? mainRoot.getScene().getWindow() : null;
           File out =
-              fc.showSaveDialog(
-                  mainRoot.getScene() != null ? mainRoot.getScene().getWindow() : null);
+              fc.showSaveDialog(owner instanceof Stage s ? pickerOwner(s) : owner);
           if (out != null) {
             try (OutputStream os = Files.newOutputStream(out.toPath())) {
               os.write(derivationText.getBytes(StandardCharsets.UTF_8));
