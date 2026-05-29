@@ -93,15 +93,127 @@ human mistakes rather than cryptographic weaknesses.
 
 ---
 
-## 📦 Downloads
+## 📦 Downloads & Installation
 
-Installers are attached to the latest GitHub Release:
+Installers are attached to the latest GitHub Release. Pick the one that
+matches your machine, then follow the per-OS notes below.
 
-| Platform | Installer |
-| --- | --- |
-| Windows | [X-Men.exe](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.exe) |
-| macOS | [X-Men.dmg](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.dmg) |
-| Linux | [X-Men.deb](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.deb) |
+| Platform | Installer | Notes |
+| --- | --- | --- |
+| Windows 10/11 | [X-Men.exe](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.exe) | Per-user install; no admin rights needed. |
+| macOS (Intel) | [X-Men-x64.dmg](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men-x64.dmg) | x86_64 build; runs natively on Intel Macs. |
+| macOS (Apple Silicon) | [X-Men-arm64.dmg](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men-arm64.dmg) | arm64 build; runs natively on M1/M2/M3/M4. |
+| Linux (Debian / Ubuntu) | [X-Men.deb](https://github.com/x-men-team/X-Men_2.0/releases/latest/download/X-Men.deb) | x86_64 .deb; tested on Ubuntu 22.04+. |
+
+> 🗂️ **Where mutation output goes.** Generated `.m` files are written under
+> `~/.xmen/runs/` regardless of OS, so the app never needs to write inside its
+> install directory. Persisted settings (themes, vocabulary profiles, UI
+> preferences) live in `~/.xmen/settings.json`.
+
+<details>
+<summary><strong>🪟 Windows installation</strong></summary>
+
+<br/>
+
+1. Download **X-Men.exe** from the Releases page.
+2. Double-click the installer. Choose an install location when prompted
+   (the default `%LOCALAPPDATA%\X-Men` works without elevation).
+3. Tick **Add to Start Menu** and **Create desktop shortcut** if you'd like
+   them; the installer creates per-user shortcuts only.
+4. Launch **X-Men** from the Start Menu or the desktop shortcut.
+
+Windows SmartScreen may show *"Windows protected your PC"* the first time
+because the .exe is not yet code-signed. Click **More info → Run anyway**.
+
+</details>
+
+<details>
+<summary><strong>🍎 macOS installation (Intel & Apple Silicon)</strong></summary>
+
+<br/>
+
+1. Download the matching `.dmg` for your Mac:
+   - **Intel Mac** → `X-Men-x64.dmg`
+   - **Apple Silicon Mac** (M1/M2/M3/M4) → `X-Men-arm64.dmg`
+
+   Not sure which one you have? Click  → **About This Mac** → look at the
+   **Chip** line. *"Apple M…"* means Apple Silicon; *"Intel Core…"* means Intel.
+2. Double-click the `.dmg` to mount it, then drag **X-Men.app** into your
+   **Applications** folder.
+3. Eject the disk image (right-click on the desktop → **Eject "X-Men"**).
+
+> 🛡️ **Gatekeeper / "X-Men is damaged or can't be opened" — required step.**
+> Because this release is not signed with an Apple Developer ID, macOS
+> Gatekeeper will block the first launch with a message like:
+>
+> > *"'X-Men.app' is damaged and can't be opened."*  
+> > *"'X-Men.app' cannot be opened because the developer cannot be verified."*
+>
+> This is expected. Use **one** of the two methods below to allow it.
+
+#### Method 1 — System Settings (recommended, no Terminal)
+
+1. Double-click **X-Men.app** in Applications and dismiss the warning.
+2. Open the Apple menu  → **System Settings** → **Privacy & Security**.
+3. Scroll down to the **Security** section. You will see:
+   > *"X-Men was blocked from use because it is not from an identified developer."*
+4. Click **Open Anyway** next to that message.
+5. macOS shows one more confirmation popup — click **Open**. Your
+   administrator password may be requested.
+6. From this point on, **X-Men.app** launches normally from Launchpad.
+
+#### Method 2 — Strip the quarantine flag (Terminal one-liner)
+
+If Gatekeeper is in lockdown mode and **Open Anyway** doesn't appear, drop
+the quarantine extended attribute that Safari/Chrome added when the .dmg
+was downloaded:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/X-Men.app
+```
+
+Then double-click **X-Men.app** from Applications.
+
+##### Troubleshooting macOS launches
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| *"X-Men is damaged and can't be opened. You should move it to the Trash."* | Quarantine flag from the download. | Run `xattr -dr com.apple.quarantine /Applications/X-Men.app`. |
+| App icon bounces in the Dock, then disappears. | Gatekeeper killed it silently. | Open **Privacy & Security** within 60 s and click **Open Anyway**. |
+| *"This Mac is not running on the right architecture."* | Downloaded the wrong .dmg. | Use `X-Men-x64.dmg` on Intel Mac, `X-Men-arm64.dmg` on Apple Silicon. |
+| Splash plays but the main window never appears. | Stale `~/.xmen/settings.json` referencing a theme that no longer exists. | Quit X-Men, run `rm ~/.xmen/settings.json`, relaunch. |
+
+</details>
+
+<details>
+<summary><strong>🐧 Linux installation (Debian / Ubuntu)</strong></summary>
+
+<br/>
+
+1. Download **X-Men.deb** from the Releases page.
+2. Install with apt (resolves any runtime dependencies automatically):
+
+   ```bash
+   sudo apt install ./X-Men.deb
+   ```
+
+   Or use `dpkg` if you prefer:
+
+   ```bash
+   sudo dpkg -i X-Men.deb
+   sudo apt-get install -f          # fix any missing deps
+   ```
+3. Launch from the application menu (it appears under *Development* /
+   *Security*) or from a terminal:
+
+   ```bash
+   /opt/x-men/bin/X-Men
+   ```
+
+Fedora / RHEL builds are not currently published — `mvnw clean package -P installer -Djpackage.type=RPM`
+on a Fedora host produces a working `.rpm` if you need one.
+
+</details>
 
 ---
 

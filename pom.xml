@@ -507,6 +507,19 @@
                                     <javaOptions>
                                         <option>-Djava.awt.headless=false</option>
                                         <option>-Dfile.encoding=UTF-8</option>
+                                        <!--
+                                          Bundled JRE heap headroom. Forget +
+                                          derivation runs on large ceremonies
+                                          (Bank, Oyster) can briefly hold a few
+                                          hundred MB of intermediate model state,
+                                          and the default 256 MB cap on a
+                                          jpackage'd app sometimes OOM'd before
+                                          the mutation pipeline finished —
+                                          particularly on Intel macOS where the
+                                          JavaFX media stack is heavier.
+                                        -->
+                                        <option>-Xmx2g</option>
+                                        <option>-XX:MaxMetaspaceSize=384m</option>
                                     </javaOptions>
                                 </configuration>
                             </execution>
