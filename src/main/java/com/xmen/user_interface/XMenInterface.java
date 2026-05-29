@@ -129,6 +129,21 @@ public class XMenInterface extends Application {
   @Override
   public void start(Stage stage) {
     this.primaryStage = stage;
+    // Windows-only: drop the OS title bar + 1-px frame that Windows 11 draws
+    // around every decorated window. Without this the background video and
+    // overlay stop short of the OS-drawn frame and leave a visible border on
+    // the left, right, and bottom edges of the maximised window. macOS and
+    // Linux are unaffected — their native chrome already sits flush against
+    // the dark theme.
+    if (System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win")) {
+      try {
+        stage.initStyle(javafx.stage.StageStyle.UNDECORATED);
+      } catch (IllegalStateException ignored) {
+        // initStyle can only be called before show(); if the runtime re-uses
+        // an already-shown primary stage (tests, devtools restart) the call
+        // throws and we just keep the default chrome.
+      }
+    }
     // Ship the X-Men logo to the OS so the taskbar / dock / Alt-Tab uses our
     // brand mark at a usable resolution (without this JavaFX falls back to the
     // generic Java cup, which is what made the taskbar icon look tiny on
@@ -641,6 +656,14 @@ public class XMenInterface extends Application {
     this.mainRoot = built.root();
     this.heroLogo = built.logoView();
 
+    // Windows uses StageStyle.UNDECORATED so the video can paint edge-to-edge;
+    // re-add a minimal top-right control strip with the minimise + close
+    // buttons that the OS chrome would normally provide. Skipped on macOS and
+    // Linux because their native title bar is still present.
+    if (System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).contains("win")) {
+      mainRoot.getChildren().add(buildWindowsChromeButtons(stage));
+    }
+
     GridPane checkboxPanel = setupGridPane(stage);
     checkboxPanel.setMaxWidth(Double.MAX_VALUE);
 
@@ -753,6 +776,45 @@ public class XMenInterface extends Application {
     if (legacy != null) scene.getStylesheets().add(legacy.toExternalForm());
 
     return scene;
+  }
+
+  /**
+   * Build the top-right minimise + close controls that replace the native
+   * Windows title-bar buttons when the stage is undecorated. Sized to roughly
+   * match the Windows 11 caption (46×32 px), with a red hover for close and
+   * a subtle white tint for minimise so they read against the dark theme.
+   */
+  private static HBox buildWindowsChromeButtons(Stage stage) {
+    Button min = new Button("–");          // en-dash, visually clean minimise glyph
+    Button close = new Button("✕");        // multiplication X
+    String base =
+        "-fx-background-color: transparent;"
+            + "-fx-text-fill: white;"
+            + "-fx-font-size: 14px;"
+            + "-fx-font-weight: 400;"
+            + "-fx-min-width: 46px; -fx-min-height: 32px;"
+            + "-fx-pref-width: 46px; -fx-pref-height: 32px;"
+            + "-fx-background-radius: 0;"
+            + "-fx-border-width: 0;"
+            + "-fx-cursor: hand;";
+    min.setStyle(base);
+    close.setStyle(base);
+    min.setOnMouseEntered(
+        e -> min.setStyle(base + "-fx-background-color: rgba(255,255,255,0.12);"));
+    min.setOnMouseExited(e -> min.setStyle(base));
+    close.setOnMouseEntered(
+        e -> close.setStyle(base + "-fx-background-color: #E81123;"));
+    close.setOnMouseExited(e -> close.setStyle(base));
+    min.setFocusTraversable(false);
+    close.setFocusTraversable(false);
+    min.setOnAction(e -> stage.setIconified(true));
+    close.setOnAction(e -> stage.fireEvent(
+        new javafx.stage.WindowEvent(stage, javafx.stage.WindowEvent.WINDOW_CLOSE_REQUEST)));
+    HBox bar = new HBox(min, close);
+    bar.setMaxSize(javafx.scene.layout.Region.USE_PREF_SIZE, javafx.scene.layout.Region.USE_PREF_SIZE);
+    bar.setPickOnBounds(false);
+    StackPane.setAlignment(bar, javafx.geometry.Pos.TOP_RIGHT);
+    return bar;
   }
 
   private void setChatIcon(boolean lightTheme, com.xmen.config.ThemeCatalog.Theme theme) {
