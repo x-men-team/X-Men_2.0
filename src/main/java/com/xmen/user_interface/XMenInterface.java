@@ -154,24 +154,22 @@ public class XMenInterface extends Application {
     // (heroLeft minWidth 420 + controlsHost minWidth 640 = 1060) can
     // never be squeezed into an overlapping state. Above this floor
     // the existing HBox.setHgrow(_, ALWAYS) lets both columns grow.
-    //
-    // Setting max == min freezes the restored size: dragging an edge
-    // does nothing while the window is non-maximised, so users can
-    // only toggle between maximised and this fixed restored size.
-    // setResizable(false) would also disable maximise (it strips the
-    // maximise affordance on every OS), which is why we use the
-    // min == max trick instead — the OS WM still honours setMaximized
-    // because the maximised size is set by the WM, not by min/max.
     stage.setMinWidth(1100);
     stage.setMinHeight(720);
-    stage.setMaxWidth(1100);
-    stage.setMaxHeight(720);
     stage.setX(screen.getMinX());
     stage.setY(screen.getMinY());
     stage.setWidth(screen.getWidth());
     stage.setHeight(screen.getHeight());
     stage.show();
     stage.setMaximized(true);
+    // Block edge-drag resize. Programmatic setMaximized(true) above still
+    // works because the WM treats it as an explicit override, so the
+    // window opens (and stays) at the active monitor's visual bounds —
+    // setResizable(false) only suppresses *user-initiated* resize and the
+    // OS maximise affordance, which is exactly the behaviour we want:
+    // the window is fixed at fullscreen and can never be drag-resized
+    // into an awkward intermediate size.
+    stage.setResizable(false);
 
     stage.setOnCloseRequest(e -> shutdownEverything());
 
@@ -716,21 +714,12 @@ public class XMenInterface extends Application {
     // affordance instead of bunching them near the top.
     VBox.setVgrow(checkboxPanel, Priority.ALWAYS);
 
-    // ScrollPane wrap: when the stage is sized below the mutation panel's
-    // natural height (lots of checkbox rows + sub-options) the scroll bar
-    // appears instead of the rows overlapping each other. The chat
-    // affordance sits OUTSIDE the scroll viewport so it stays anchored to
-    // the bottom-right corner regardless of scroll position.
-    ScrollPane panelScroll = new ScrollPane(panelContent);
-    panelScroll.setFitToWidth(true);
-    panelScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-    panelScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-    panelScroll.setPannable(false);
-    panelScroll.getStyleClass().add("x-control-scroll");
-    // Lock the scrolled content to at-least its preferred height so rows
-    // never squish into each other; overflow goes to the scroll bar.
-    panelContent.setMinHeight(Region.USE_PREF_SIZE);
-    StackPane panelWrap = new StackPane(panelScroll, panelFooter);
+    // No ScrollPane: all mutations are laid out flat inside the glass card so
+    // the rows distribute evenly all the way down to the chat affordance,
+    // matching the original v1.0.0 layout. The window is locked at
+    // fullscreen-or-larger so the panel always has enough height for the
+    // rows to fit without a scrollbar.
+    StackPane panelWrap = new StackPane(panelContent, panelFooter);
     panelWrap.getStyleClass().add("x-control-panel");
     panelWrap.setMaxWidth(Double.MAX_VALUE);
     panelWrap.setMaxHeight(Double.MAX_VALUE);
@@ -941,10 +930,10 @@ public class XMenInterface extends Application {
     checkboxPanel.setVgap(20);
     checkboxPanel.setAlignment(Pos.TOP_LEFT);
     checkboxPanel.setMaxHeight(Double.MAX_VALUE);
-    // Pin the grid to its natural height so squeezing the stage vertically
-    // doesn't collapse mutation rows onto each other — the surrounding
-    // ScrollPane handles overflow by scrolling instead.
-    checkboxPanel.setMinHeight(Region.USE_PREF_SIZE);
+    // Let the grid shrink to 0 so the VBox.Vgrow=ALWAYS + per-row
+    // SOMETIMES vgrow can stretch the rows evenly all the way down to
+    // the bottom of the glass card (the original v1.0.0 layout).
+    checkboxPanel.setMinHeight(0);
 
     buttonUpload = new Button("Upload File");
     buttonUpload.setId("buttonUpload");

@@ -126,37 +126,12 @@ jobs:
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "Using app version: $v"
 
-      # macOS: build APP_IMAGE first, ad-hoc resign every nested binary, then
-      # package the signed bundle as a DMG via the jpackage CLI. This belt-and-
-      # suspenders pass complements the architecture pin above: a few of the
-      # bundled JRE helpers (e.g. libjli) can land unsigned when jpackage builds
-      # the DMG in one shot, and Apple Silicon's kernel refuses to load any
-      # unsigned mach-O binary, which is the second half of the "app isn't
-      # starting" symptom on M-series Macs.
-      - name: Build installer (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./mvnw -B -ntp -P installer \
-            -Djpackage.type=APP_IMAGE \
-            -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
-            -DskipTests \
-            clean package
-          app_dir=$(find target/dist -maxdepth 2 -type d -name '*.app' | head -n 1)
-          codesign --deep --force --sign - "$app_dir"
-          codesign --verify --deep --strict "$app_dir"
-          jpackage \
-            --type ${{ matrix.package_type }} \
-            --app-image "$app_dir" \
-            --name X-Men \
-            --app-version ${{ steps.appver.outputs.version }} \
-            --dest target/dist \
-            --mac-package-name X-Men \
-            --mac-package-identifier com.xmen.app
-
-      - name: Build installer (Windows + Linux)
-        if: runner.os != 'macOS'
+      # Single-step build for every platform. The architecture pin in
+      # setup-java above is what makes the Apple-Silicon launcher boot:
+      # jpackage 21 already ad-hoc signs the .app bundle by default, so a
+      # separate codesign + repackage pass is unnecessary and was the
+      # source of the x64 .dmg build instability.
+      - name: Build installer
         shell: bash
         run: |
           ./mvnw -B -ntp -P installer \
