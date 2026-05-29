@@ -303,6 +303,18 @@ public class XMenInterface extends Application {
     }
     boolean videoLoaded = false;
 
+    // Same kill switch as the background-video rotator: skip the splash MP4 on
+    // platforms where the JavaFX media stack has been observed to hang the OS
+    // (Intel macOS by default; user-overridable via XMEN_BG_VIDEO). The
+    // fallback logo image stays on screen for the watchdog's 12 s before the
+    // main scene takes over, so the launch sequence still feels intentional.
+    if (!MainSceneFactory.isBackgroundVideoEnabled()) {
+      log.info("Splash video disabled by xmen.bg.video.enabled / OS default; using fallback image.");
+      if (fallbackImage != null) fallbackImage.setVisible(true);
+      splashRoot.setAlignment(Pos.CENTER);
+      return null;
+    }
+
     try {
       File tempVideoFile = ensureCachedSplashVideo();
 

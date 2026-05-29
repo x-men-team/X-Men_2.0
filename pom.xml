@@ -508,18 +508,20 @@
                                         <option>-Djava.awt.headless=false</option>
                                         <option>-Dfile.encoding=UTF-8</option>
                                         <!--
-                                          Bundled JRE heap headroom. Forget +
-                                          derivation runs on large ceremonies
-                                          (Bank, Oyster) can briefly hold a few
-                                          hundred MB of intermediate model state,
-                                          and the default 256 MB cap on a
-                                          jpackage'd app sometimes OOM'd before
-                                          the mutation pipeline finished —
-                                          particularly on Intel macOS where the
-                                          JavaFX media stack is heavier.
+                                          Bundled JRE heap budget. Forget +
+                                          derivation on Bank/Oyster occasionally
+                                          peaks at a few hundred MB of
+                                          intermediate model state, but the
+                                          previous 2 GB cap was big enough to
+                                          push a low-RAM Intel Mac (8 GB shared
+                                          with the iGPU) into swap on launch and
+                                          freeze the WindowServer. 1 GB is
+                                          comfortably above the working set we
+                                          measured on the Bank case study and
+                                          leaves the OS room to breathe.
                                         -->
-                                        <option>-Xmx2g</option>
-                                        <option>-XX:MaxMetaspaceSize=384m</option>
+                                        <option>-Xmx1g</option>
+                                        <option>-XX:MaxMetaspaceSize=256m</option>
                                     </javaOptions>
                                 </configuration>
                             </execution>
