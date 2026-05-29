@@ -154,8 +154,18 @@ public class XMenInterface extends Application {
     // (heroLeft minWidth 420 + controlsHost minWidth 640 = 1060) can
     // never be squeezed into an overlapping state. Above this floor
     // the existing HBox.setHgrow(_, ALWAYS) lets both columns grow.
+    //
+    // Setting max == min freezes the restored size: dragging an edge
+    // does nothing while the window is non-maximised, so users can
+    // only toggle between maximised and this fixed restored size.
+    // setResizable(false) would also disable maximise (it strips the
+    // maximise affordance on every OS), which is why we use the
+    // min == max trick instead — the OS WM still honours setMaximized
+    // because the maximised size is set by the WM, not by min/max.
     stage.setMinWidth(1100);
     stage.setMinHeight(720);
+    stage.setMaxWidth(1100);
+    stage.setMaxHeight(720);
     stage.setX(screen.getMinX());
     stage.setY(screen.getMinY());
     stage.setWidth(screen.getWidth());
@@ -1763,26 +1773,16 @@ public class XMenInterface extends Application {
   }
 
   /**
-   * Pick the owner Window to pass to {@code FileChooser.showXDialog}.
-   *
-   * <p>On Linux the native GTK chooser inherits the owner window's coords as
-   * its placement origin. When the owner is a maximized JavaFX stage on some
-   * window managers (KDE / wayland-on-X11 hybrid sessions in particular) the
-   * stage reports negative or out-of-bounds origins and the chooser ends up
-   * partially off-screen — which is what the user hit in the Linux .deb
-   * build. Passing {@code null} makes GTK center the chooser on the screen
-   * instead, which is always visible regardless of where the parent stage
-   * thinks it lives.
-   *
-   * <p>Windows and macOS keep the parent owner so the chooser is correctly
-   * modal to the X-Men window.
+   * Pick the owner Window to pass to {@code FileChooser.showXDialog}. The
+   * previous Linux-specific {@code null} override was meant to make GTK
+   * centre the chooser on screen, but it leaves placement entirely up to
+   * the WM and on Wayland + Xwayland hybrid sessions that places the
+   * dialog wherever the WM last saw a top-level — frequently off-screen
+   * for a freshly-shown chooser. Passing the maximised X-Men stage gives
+   * GTK a known on-screen anchor (GTK_WIN_POS_CENTER_ON_PARENT), which is
+   * always visible because the stage itself fills the active monitor.
    */
   private static javafx.stage.Window pickerOwner(Stage stage) {
-    if (stage == null) return null;
-    String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
-    if (os.contains("linux") || os.contains("nix")) {
-      return null;
-    }
     return stage;
   }
 

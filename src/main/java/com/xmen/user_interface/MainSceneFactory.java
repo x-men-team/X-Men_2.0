@@ -505,15 +505,27 @@ public final class MainSceneFactory {
     // the next one actually starts playing.
     private static final Duration STARTUP_WATCHDOG = Duration.seconds(12);
 
-    /** Crossfade duration between videos. Long enough to mask the load gap. */
-    private static final Duration CROSSFADE = Duration.millis(700);
+    /**
+     * Crossfade duration between videos. Long enough to mask the load gap
+     * but short enough that the outgoing decoder is disposed quickly — the
+     * outgoing MediaPlayer keeps decoding until the fade-out KeyFrame fires,
+     * so a long crossfade widens the window in which two H.264 pipelines
+     * run in parallel and stutter on weaker GPUs.
+     */
+    private static final Duration CROSSFADE = Duration.millis(280);
 
     /**
      * Start preparing the next MP4 before the current one ends. JavaFX media
      * initialisation can take a noticeable moment on Windows, and waiting for
-     * EndOfMedia leaves the last decoded frame looking "stuck" during that warm-up.
+     * EndOfMedia leaves the last decoded frame looking "stuck" during that
+     * warm-up. The previous 3.5 s lead meant the incoming and outgoing
+     * decoders ran in parallel for ~3.5 s every rotation, which on Apple
+     * Silicon iGPUs and older Intel laptops produced the visible "videos
+     * are stuck / not playing properly" stutter. 1.2 s is enough for the
+     * cold MediaPlayer init on every platform we ship and keeps the dual-
+     * decoder window roughly four times tighter.
      */
-    private static final Duration PRELOAD_LEAD = Duration.seconds(3.5);
+    private static final Duration PRELOAD_LEAD = Duration.seconds(1.2);
 
     private final StackPane container;
     private final ImageView fallback;

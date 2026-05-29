@@ -32,32 +32,40 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+            jdk_arch: x64
             package_type: EXE
             asset_name: X-Men.exe
             artifact_glob: target/dist/*.exe
             timeout_minutes: 45
             continue_on_error: false
-          # Intel-Mac (macos-13) builds the x86_64 .dmg on a runner that runs
-          # natively on Apple Silicon (macos-14) by routing the entire JDK +
-          # jpackage toolchain through Rosetta 2 with `arch -x86_64`. The
-          # macos-13 hosted-runner pool was consistently failing to pick up
-          # jobs (>8 h queue), so the previous matrix entry timed the release
-          # out instead of publishing. macos-14 has reliable capacity.
+          # Intel-Mac .dmg: install the x86_64 Temurin JDK on the Apple-Silicon
+          # runner; macos-14 ships with Rosetta 2, so the x86_64 JDK + jpackage
+          # auto-execute through it and the resulting launcher / bundled JRE are
+          # x86_64 native for Intel Macs.
           - os: macos-14
             arch: x64
+            jdk_arch: x64
             package_type: DMG
             asset_name: X-Men-x64.dmg
             artifact_glob: target/dist/*.dmg
             timeout_minutes: 60
             continue_on_error: false
-          - os: macos-14          # Apple Silicon runner — produces an arm64 .dmg natively
+          # Apple Silicon .dmg: the previous matrix entry omitted `architecture`,
+          # so setup-java defaulted to x64 and installed an x86_64 JDK on the
+          # arm64 runner. jpackage then produced an x86_64 launcher labelled as
+          # "arm64" — on a real Apple-Silicon Mac without Rosetta 2 that launcher
+          # silently fails to start, which was the "app isn't starting" report.
+          # Pinning aarch64 here makes the build truly native.
+          - os: macos-14
             arch: arm64
+            jdk_arch: aarch64
             package_type: DMG
             asset_name: X-Men-arm64.dmg
             artifact_glob: target/dist/*.dmg
             timeout_minutes: 45
             continue_on_error: false
           - os: ubuntu-latest
+            jdk_arch: x64
             package_type: DEB
             asset_name: X-Men.deb
             artifact_glob: target/dist/*.deb
@@ -68,26 +76,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21 (host arch)
-        if: matrix.arch != 'x64' || runner.os != 'macOS'
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
-          cache: maven
-
-      # For the Intel-Mac dmg: install the x86_64 Temurin 21 JDK on the
-      # Apple-Silicon runner. The whole build then runs under Rosetta 2
-      # (via `arch -x86_64 …`) so jpackage produces an x86_64 launcher and
-      # bundles an x86_64 JRE — the resulting .dmg runs natively on Intel
-      # Macs without Rosetta.
-      - name: Set up x86_64 JDK 21 (Intel Mac cross-arch)
-        if: matrix.arch == 'x64' && runner.os == 'macOS'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          architecture: x64
+          architecture: ${{ matrix.jdk_arch }}
           cache: maven
 
       - name: Make Maven wrapper executable
@@ -132,26 +126,44 @@ jobs:
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "Using app version: $v"
 
-      # The OS-aware profiles in pom.xml pick the right --icon for each
-      # platform, so callers only need -Djpackage.type and -Djpackage.appVersion.
-      # The Intel-Mac job wraps the whole build in `arch -x86_64` so jpackage
-      # and Maven run under Rosetta 2 and emit x86_64 binaries.
-      - name: Build installer
+      # macOS: build APP_IMAGE first, ad-hoc resign every nested binary, then
+      # package the signed bundle as a DMG via the jpackage CLI. This belt-and-
+      # suspenders pass complements the architecture pin above: a few of the
+      # bundled JRE helpers (e.g. libjli) can land unsigned when jpackage builds
+      # the DMG in one shot, and Apple Silicon's kernel refuses to load any
+      # unsigned mach-O binary, which is the second half of the "app isn't
+      # starting" symptom on M-series Macs.
+      - name: Build installer (macOS)
+        if: runner.os == 'macOS'
         shell: bash
         run: |
-          if [[ "${{ matrix.arch }}" == "x64" && "$RUNNER_OS" == "macOS" ]]; then
-            arch -x86_64 ./mvnw -B -ntp -P installer \
-              -Djpackage.type=${{ matrix.package_type }} \
-              -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
-              -DskipTests \
-              clean package
-          else
-            ./mvnw -B -ntp -P installer \
-              -Djpackage.type=${{ matrix.package_type }} \
-              -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
-              -DskipTests \
-              clean package
-          fi
+          set -euo pipefail
+          ./mvnw -B -ntp -P installer \
+            -Djpackage.type=APP_IMAGE \
+            -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
+            -DskipTests \
+            clean package
+          app_dir=$(find target/dist -maxdepth 2 -type d -name '*.app' | head -n 1)
+          codesign --deep --force --sign - "$app_dir"
+          codesign --verify --deep --strict "$app_dir"
+          jpackage \
+            --type ${{ matrix.package_type }} \
+            --app-image "$app_dir" \
+            --name X-Men \
+            --app-version ${{ steps.appver.outputs.version }} \
+            --dest target/dist \
+            --mac-package-name X-Men \
+            --mac-package-identifier com.xmen.app
+
+      - name: Build installer (Windows + Linux)
+        if: runner.os != 'macOS'
+        shell: bash
+        run: |
+          ./mvnw -B -ntp -P installer \
+            -Djpackage.type=${{ matrix.package_type }} \
+            -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
+            -DskipTests \
+            clean package
 
       - name: Normalize asset name
         shell: bash

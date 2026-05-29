@@ -66,9 +66,28 @@ case "$1" in
 METAINFO_EOF
         chmod 644 /usr/share/metainfo/com.xmen.app.metainfo.xml
 
-        # Refresh AppStream cache if the tool is present.
+        # Refresh AppStream cache. The CLI's flags vary across distros — newer
+        # appstreamcli takes `refresh-cache --force`, older builds want plain
+        # `refresh`, and some derivatives ship `appstream-util` instead. Try
+        # each in turn so the metainfo lands in the OS app catalog regardless
+        # of which one is installed; without this the package installs cleanly
+        # but stays invisible to GNOME Software / KDE Discover and the user is
+        # forced into the terminal to uninstall.
         if [ -x "$(command -v appstreamcli 2>/dev/null)" ]; then
-            appstreamcli refresh-cache --force >/dev/null 2>&1 || true
+            appstreamcli refresh-cache --force >/dev/null 2>&1 \
+                || appstreamcli refresh --force >/dev/null 2>&1 \
+                || true
+        elif [ -x "$(command -v appstream-util 2>/dev/null)" ]; then
+            appstream-util refresh >/dev/null 2>&1 || true
+        fi
+
+        # Ask PackageKit (the backend GNOME Software / KDE Discover both use
+        # to enumerate installed packages) to re-scan. Without this prompt
+        # the Software Center can take its own sweet time to notice the new
+        # .deb, which is what made earlier installs invisible until the next
+        # session restart.
+        if [ -x "$(command -v pkcon 2>/dev/null)" ]; then
+            pkcon refresh force >/dev/null 2>&1 || true
         fi
         ;;
 
