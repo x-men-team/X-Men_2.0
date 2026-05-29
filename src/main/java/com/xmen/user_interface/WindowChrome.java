@@ -72,6 +72,20 @@ public final class WindowChrome {
           "windows-dark-chrome");
       t.setDaemon(true);
       t.start();
+
+      // Repaint the OS-drawn window border + title bar dark via DWM. The
+      // registry hint above only changes future windows; this targets the
+      // already-shown X-Men stage so the light 1-px frame Windows 11 draws
+      // on the left/right/bottom edges of every window stops contrasting
+      // against the dark theme. Fired on stage.showingProperty so the HWND
+      // exists by the time PowerShell goes looking for it.
+      stage.showingProperty().addListener((obs, was, now) -> {
+        if (Boolean.TRUE.equals(now)) {
+          Thread w = new Thread(WindowChrome::recolourWindowsFrame, "windows-dark-frame");
+          w.setDaemon(true);
+          w.start();
+        }
+      });
     }
 
     // Black stage fill so any flicker between scenes never shows OS white.
@@ -111,6 +125,45 @@ public final class WindowChrome {
     Process p = pb.start();
     p.waitFor();
     log.debug("Windows dark-mode hint registry write exited with code {}", p.exitValue());
+  }
+
+  /**
+   * Ask DWM to paint the X-Men window's title bar and 1-px border in the
+   * dark theme instead of the OS light default. Windows 11 draws that 1-px
+   * frame on the left, right, and bottom of every window; without this
+   * call it stays light grey and reads as a visible border against the
+   * dark app content. The PowerShell snippet uses Add-Type to import
+   * <code>DwmSetWindowAttribute</code> and <code>FindWindow</code>, then
+   * sets DWMWA_USE_IMMERSIVE_DARK_MODE (20) and DWMWA_BORDER_COLOR (34)
+   * on the window whose title starts with "X-Men". No-op if the call
+   * fails (older Windows 10, missing dwmapi.dll, PowerShell missing).
+   */
+  private static void recolourWindowsFrame() {
+    String ps =
+        "Add-Type -Namespace W -Name X -MemberDefinition '"
+            + "[DllImport(\"user32.dll\", CharSet=CharSet.Unicode)] public static extern System.IntPtr FindWindow(string c, string n);"
+            + "[DllImport(\"dwmapi.dll\")] public static extern int DwmSetWindowAttribute(System.IntPtr h, int a, ref int v, int s);"
+            + "';"
+            + "$d = New-Object int[] 1; for($i=0;$i -lt 80;$i++){"
+            + "  $h = [W.X]::FindWindow($null, 'X-Men 2.0');"
+            + "  if($h -ne [System.IntPtr]::Zero){"
+            + "    $d[0]=1;        [void][W.X]::DwmSetWindowAttribute($h,20,[ref]$d[0],4);"
+            + "    $d[0]=0x00170A1A;[void][W.X]::DwmSetWindowAttribute($h,34,[ref]$d[0],4);"
+            + "    $d[0]=0x00170A1A;[void][W.X]::DwmSetWindowAttribute($h,35,[ref]$d[0],4);"
+            + "    break;"
+            + "  } Start-Sleep -Milliseconds 100;"
+            + "}";
+    try {
+      ProcessBuilder pb =
+          new ProcessBuilder(
+              "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps);
+      pb.redirectErrorStream(true);
+      Process p = pb.start();
+      p.waitFor();
+      log.debug("Windows DWM border recolour exited with code {}", p.exitValue());
+    } catch (Throwable err) {
+      log.debug("Could not recolour Windows window frame: {}", err.getMessage());
+    }
   }
 
   private static void applyMacDarkMode() {
