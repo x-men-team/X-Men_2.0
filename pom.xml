@@ -20,7 +20,7 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.6.0</springdoc.version>
-        <javafx.version>23.0.1</javafx.version>
+        <javafx.version>23.0.2</javafx.version>
     </properties>
 
     <dependencies>
@@ -723,7 +723,7 @@
                                     <linuxMenuGroup>Development;Security;Utility;</linuxMenuGroup>
                                     <linuxPackageName>x-men</linuxPackageName>
                                     <linuxAppCategory>Development</linuxAppCategory>
-                                    <linuxDebMaintainer>x-men-team@x-men.io</linuxDebMaintainer>
+                                    <linuxPackageDeps>libavcodec-extra, libavformat58 | libavformat59 | libavformat60 | libavformat61</linuxPackageDeps>
                                     <linuxRpmLicenseType>MIT</linuxRpmLicenseType>
                                     <linuxAppRelease>1</linuxAppRelease>
                                     <resourceDir>${project.basedir}/src/main/resources/packaging/linux</resourceDir>

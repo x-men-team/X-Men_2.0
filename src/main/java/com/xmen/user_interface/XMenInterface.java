@@ -132,6 +132,13 @@ public class XMenInterface extends Application {
     return os.contains("linux") || os.contains("nix");
   }
 
+  /** True on any Windows OS where JavaFX runs against Media Foundation. */
+  static boolean isWindows() {
+    return System.getProperty("os.name", "")
+        .toLowerCase(java.util.Locale.ROOT)
+        .contains("win");
+  }
+
   @Override
   public void start(Stage stage) {
     this.primaryStage = stage;
@@ -225,22 +232,36 @@ public class XMenInterface extends Application {
           handedOff[0] = true;
           detachSplashPlaybackWatchdog();
 
-          // Swap scenes FIRST. The background-video rotator is wired up
-          // inside createMainScene(); having it kick off while the splash
-          // MediaPlayer is still alive keeps the native media runtime
-          // (Media Foundation on Windows, GStreamer on Linux, AVFoundation
-          // on macOS) initialised through the first background MediaPlayer's
-          // cold start. Tearing the splash player down before that happens
-          // was the cause of the first-background-video-stuck symptom on
-          // Windows — the runtime got fully torn down between the splash's
-          // dispose() and the rotator's first new MediaPlayer(), so the
-          // first BG video paid the full multi-second re-init cost.
+          // Windows-only: swap scenes FIRST and defer disposing the splash
+          // MediaPlayer so the native Media Foundation runtime stays
+          // initialised through the rotator's first background MediaPlayer
+          // cold start. Tearing the splash down before that happens was
+          // the cause of the first-background-video-stuck symptom on
+          // Windows. On Linux (GStreamer) and macOS (AVFoundation),
+          // keeping two parallel MediaPlayer instances alive while the
+          // rotator initialises actually prevents the second one from
+          // starting at all — which is what produced the "splash and
+          // background videos do not play on Linux" and "Apple Silicon
+          // build will not open" reports. Dispose the splash inline on
+          // those platforms; they don't need the warmup window.
           MediaPlayer oldSplash = splashPlayer;
           if (oldSplash != null) {
-            try {
-              oldSplash.setMute(true);
-              oldSplash.stop();
-            } catch (Exception ignored) {
+            if (isWindows()) {
+              try {
+                oldSplash.setMute(true);
+                oldSplash.stop();
+              } catch (Exception ignored) {
+              }
+            } else {
+              try {
+                oldSplash.stop();
+                oldSplash.dispose();
+              } catch (Exception ignored) {
+              }
+              if (mediaPlayer == oldSplash) {
+                mediaPlayer = null;
+              }
+              oldSplash = null;
             }
           }
           stage.setScene(createMainScene(stage));
@@ -254,22 +275,23 @@ public class XMenInterface extends Application {
           stage.setHeight(current.getHeight());
           stage.setMaximized(true);
 
-          // Defer the splash dispose so the native runtime stays warm long
-          // enough for the rotator to bring its first MediaPlayer up to
-          // PLAYING. 5 seconds is comfortably above the longest first-video
-          // codec init we have measured on Windows (Media Foundation cold
-          // start is typically 1-3 s; 5 s leaves headroom for slower laptops).
+          // Windows: defer the splash dispose so the runtime stays warm
+          // long enough for the rotator to bring its first MediaPlayer up
+          // to PLAYING. 5 seconds is comfortably above the longest first
+          // video codec init we have measured on Windows (Media Foundation
+          // cold start is typically 1-3 s; 5 s leaves headroom for slower
+          // laptops). No-op on Linux/macOS (oldSplash is already null
+          // because the inline dispose above ran).
           if (oldSplash != null) {
+            final MediaPlayer toDispose = oldSplash;
             PauseTransition delayedDispose = new PauseTransition(Duration.seconds(5));
             delayedDispose.setOnFinished(
                 ev -> {
                   try {
-                    oldSplash.dispose();
+                    toDispose.dispose();
                   } catch (Exception ignored) {
                   }
-                  // Clear the field so the shutdown hook's disposeMediaOnly()
-                  // doesn't try to dispose the already-disposed splash player.
-                  if (mediaPlayer == oldSplash) {
+                  if (mediaPlayer == toDispose) {
                     mediaPlayer = null;
                   }
                 });

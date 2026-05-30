@@ -101,7 +101,17 @@ public final class MainSceneFactory {
         // with the splash playback. The rotator consumes this player on
         // its first play, skipping the cold-start codec init that on
         // Windows made the visible first background video appear stuck.
-        if (!resources.isEmpty()) {
+        //
+        // Windows-only: the JavaFX media pipeline on Linux (GStreamer) and
+        // on Apple Silicon macOS (AVFoundation) does not tolerate two
+        // simultaneous MediaPlayer instances during startup well — the
+        // pre-warm MediaPlayer racing the splash MediaPlayer for codec
+        // resources was producing the "splash and background video do not
+        // play on Linux" symptom and the "Apple Silicon build will not
+        // open" symptom. Restrict the pre-warm to Windows, which is where
+        // the cold-start delay actually exists and where the media stack
+        // handles two parallel pipelines cleanly.
+        if (isWindows() && !resources.isEmpty()) {
           String firstResource = resources.get(0);
           File firstFile = cachedBackgroundFiles.get(firstResource);
           if (firstFile != null && firstFile.exists()) {
@@ -116,6 +126,12 @@ public final class MainSceneFactory {
     }, "xmen-bg-prewarm");
     t.setDaemon(true);
     t.start();
+  }
+
+  private static boolean isWindows() {
+    return System.getProperty("os.name", "")
+        .toLowerCase(java.util.Locale.ROOT)
+        .contains("win");
   }
 
   /**
