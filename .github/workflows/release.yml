@@ -88,6 +88,21 @@ jobs:
           architecture: ${{ matrix.jdk_arch }}
           cache: maven
 
+      # JavaFX 27-ea (Linux-only, pinned in pom.xml's javafx-linux profile so
+      # video plays on Ubuntu 26.04 "Resolute" against libavcodec62) is built
+      # with Java 25 class files (major 69). Java 21's javac cannot read them,
+      # so the Linux compile fails with "class file has wrong version 69.0,
+      # should be 65.0". Overriding JAVA_HOME to Temurin 25 here is scoped to
+      # the Linux runner via the if-guard; Windows, Intel-Mac, and
+      # Apple-Silicon matrix jobs keep JDK 21 + JavaFX 23.0.2 unchanged.
+      - name: Override JDK to 25 for Linux JavaFX 27-ea compile
+        if: runner.os == 'Linux'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          architecture: x64
+
       - name: Make Maven wrapper executable
         if: runner.os != 'Windows'
         run: chmod +x ./mvnw
