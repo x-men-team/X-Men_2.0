@@ -44,7 +44,9 @@ jobs:
           # x86_64 native for Intel Macs.
           - os: macos-14
             arch: x64
+            macho_arch: x86_64
             jdk_arch: x64
+            javafx_classifier: mac
             package_type: DMG
             asset_name: X-Men-x64.dmg
             artifact_glob: target/dist/*.dmg
@@ -58,7 +60,9 @@ jobs:
           # Pinning aarch64 here makes the build truly native.
           - os: macos-14
             arch: arm64
+            macho_arch: arm64
             jdk_arch: aarch64
+            javafx_classifier: mac-aarch64
             package_type: DMG
             asset_name: X-Men-arm64.dmg
             artifact_glob: target/dist/*.dmg
@@ -139,6 +143,27 @@ jobs:
             -Djpackage.appVersion=${{ steps.appver.outputs.version }} \
             -DskipTests \
             clean package
+
+      - name: Verify macOS app architecture
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="$(ls target/dist/*.dmg)"
+          mount_dir="$(mktemp -d)"
+          hdiutil attach "$dmg" -mountpoint "$mount_dir" -nobrowse -quiet
+          trap 'hdiutil detach "$mount_dir" -quiet || true' EXIT
+          app="$(find "$mount_dir" -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$app"
+          file "$app/Contents/MacOS/X-Men"
+          file "$app/Contents/MacOS/X-Men" | grep -q "${{ matrix.macho_arch }}"
+          jar_file="$app/Contents/app/X-Men_2.0-0.0.1-SNAPSHOT.jar"
+          jar tf "$jar_file" | grep -q "javafx-graphics-.*-${{ matrix.javafx_classifier }}\\.jar"
+          if [ "${{ matrix.javafx_classifier }}" = "mac-aarch64" ]; then
+            ! jar tf "$jar_file" | grep -q "javafx-graphics-[0-9].*-mac\\.jar"
+          else
+            ! jar tf "$jar_file" | grep -q "javafx-graphics-.*-mac-aarch64\\.jar"
+          fi
 
       - name: Normalize asset name
         shell: bash
