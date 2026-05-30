@@ -645,7 +645,7 @@ public class SettingsDialog {
     fc.setTitle("Export vocabulary as YAML");
     fc.setInitialFileName("vocabulary.yaml");
     fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("YAML", "*.yaml", "*.yml"));
-    File target = fc.showSaveDialog(owner);
+    File target = JavaFxFilePicker.showSaveDialog(owner, fc);
     if (target == null) return;
     runHttp(
         () -> {
@@ -672,7 +672,7 @@ public class SettingsDialog {
     FileChooser fc = new FileChooser();
     fc.setTitle("Import vocabulary YAML");
     fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("YAML", "*.yaml", "*.yml"));
-    File source = fc.showOpenDialog(owner);
+    File source = JavaFxFilePicker.showOpenDialog(owner, fc);
     if (source == null) return;
     runHttp(
         () -> {
@@ -732,7 +732,7 @@ public class SettingsDialog {
     FileChooser fc = new FileChooser();
     fc.setTitle("Pick a .spthy file to detect vocabulary from");
     fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Tamarin SPTHY", "*.spthy"));
-    File source = fc.showOpenDialog(owner);
+    File source = JavaFxFilePicker.showOpenDialog(owner, fc);
     if (source == null) return;
 
     runHttp(

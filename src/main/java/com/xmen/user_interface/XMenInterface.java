@@ -126,6 +126,12 @@ public class XMenInterface extends Application {
   private static final int[] APP_ICON_SIZES = {16, 24, 32, 48, 64, 128, 256, 512};
   private static final String APP_ICON_RESOURCE = "/images/Front-End-Logo.png";
 
+  /** True on any Linux/BSD desktop where JavaFX runs against GTK + an X11/Wayland WM. */
+  static boolean isLinux() {
+    String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+    return os.contains("linux") || os.contains("nix");
+  }
+
   @Override
   public void start(Stage stage) {
     this.primaryStage = stage;
@@ -184,7 +190,17 @@ public class XMenInterface extends Application {
     // OS maximise affordance, which is exactly the behaviour we want:
     // the window is fixed at fullscreen and can never be drag-resized
     // into an awkward intermediate size.
-    stage.setResizable(false);
+    //
+    // Linux exception: GNOME/Mutter interprets a non-resizable window
+    // (WM_NORMAL_HINTS min_size == max_size) as a fixed-geometry window
+    // and silently un-maximises it, so the freshly-shown stage drops back
+    // to the pre-show 1100x720 minimum and only covers the top-left of
+    // the screen. We skip setResizable(false) on Linux and rely on the
+    // maximised state plus the lack of a resize affordance on most
+    // distros to keep the window full-screen.
+    if (!isLinux()) {
+      stage.setResizable(false);
+    }
 
     stage.setOnCloseRequest(e -> shutdownEverything());
 
@@ -874,7 +890,15 @@ public class XMenInterface extends Application {
       // disable the animation via XMEN_BG_VIDEO=false (same env var as the
       // background videos), in which case the static DropShadow stays and
       // the icon still looks themed — just without the heartbeat.
-      if (MainSceneFactory.isBackgroundVideoEnabled()) {
+      //
+      // Linux: skipped by default. The Prism cache for the DropShadow
+      // filter does not survive the per-keyframe radius/spread tween on
+      // the Linux GTK pipeline (filter parameters force a regen even with
+      // cacheHint=SPEED), and that competes with GStreamer for frame
+      // budget — the background video drops frames around the pulse cycle.
+      // The static glow set above stays visible so the icon still reads
+      // as themed; only the heartbeat is dropped.
+      if (MainSceneFactory.isBackgroundVideoEnabled() && !isLinux()) {
         chatIconPulse =
                 new Timeline(
                         new KeyFrame(
@@ -1013,7 +1037,7 @@ public class XMenInterface extends Application {
               .getExtensionFilters()
               .add(new FileChooser.ExtensionFilter("XML Files", "*.*"));
           seedInitialDirectory(fileChooser);
-          File file = fileChooser.showOpenDialog(pickerOwner(stage));
+          File file = JavaFxFilePicker.showOpenDialog(pickerOwner(stage), fileChooser);
           if (file != null) {
             selectedFile = file;
             clearGeneratedOutput();
@@ -1824,14 +1848,10 @@ public class XMenInterface extends Application {
   }
 
   /**
-   * Pick the owner Window to pass to {@code FileChooser.showXDialog}. The
-   * previous Linux-specific {@code null} override was meant to make GTK
-   * centre the chooser on screen, but it leaves placement entirely up to
-   * the WM and on Wayland + Xwayland hybrid sessions that places the
-   * dialog wherever the WM last saw a top-level — frequently off-screen
-   * for a freshly-shown chooser. Passing the maximised X-Men stage gives
-   * GTK a known on-screen anchor (GTK_WIN_POS_CENTER_ON_PARENT), which is
-   * always visible because the stage itself fills the active monitor.
+   * Pick the owner Window to pass to the file picker. On Windows/macOS this is the X-Men stage so
+   * the native dialog is properly modal to it. On Linux the picker is rerouted through {@link
+   * JavaFxFilePicker} (a custom JavaFX dialog), which still uses the stage as the modality owner
+   * but ignores GTK sizing — we keep the same value here so callers do not need OS branching.
    */
   private static javafx.stage.Window pickerOwner(Stage stage) {
     return stage;
@@ -1865,7 +1885,7 @@ public class XMenInterface extends Application {
     fc.setInitialFileName(lastGeneratedZipName);
     fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Zip Archive", "*.zip"));
     seedInitialDirectory(fc);
-    File out = fc.showSaveDialog(pickerOwner(stage));
+    File out = JavaFxFilePicker.showSaveDialog(pickerOwner(stage), fc);
     if (out == null) return;
     try (OutputStream os = Files.newOutputStream(out.toPath())) {
       os.write(lastGeneratedZip);
@@ -1929,8 +1949,9 @@ public class XMenInterface extends Application {
           seedInitialDirectory(fc);
           javafx.stage.Window owner =
               mainRoot.getScene() != null ? mainRoot.getScene().getWindow() : null;
-          File out =
-              fc.showSaveDialog(owner instanceof Stage s ? pickerOwner(s) : owner);
+          javafx.stage.Window resolved =
+              owner instanceof Stage s ? pickerOwner(s) : owner;
+          File out = JavaFxFilePicker.showSaveDialog(resolved, fc);
           if (out != null) {
             try (OutputStream os = Files.newOutputStream(out.toPath())) {
               os.write(derivationText.getBytes(StandardCharsets.UTF_8));

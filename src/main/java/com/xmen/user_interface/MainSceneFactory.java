@@ -1467,6 +1467,16 @@ public final class MainSceneFactory {
       smoke.setOpacity(0.16);
       return;
     }
+    // Linux GTK/Wayland: the per-frame opacity tween forces Prism to
+    // recomposite both stacked CSS radial gradients on every render tick,
+    // and that fights GStreamer for CPU time on the same thread the
+    // MediaPlayer is decoding on. The visible symptom was background and
+    // splash video stutter; pinning the smoke opacity (still themed, just
+    // not animated) removes the contention and the video plays smoothly.
+    if (isLinux()) {
+      smoke.setOpacity(0.16);
+      return;
+    }
     javafx.animation.Timeline drift = new javafx.animation.Timeline(
         new javafx.animation.KeyFrame(Duration.ZERO,
             new javafx.animation.KeyValue(smoke.opacityProperty(), 0.12,
@@ -1480,6 +1490,11 @@ public final class MainSceneFactory {
     drift.setCycleCount(javafx.animation.Animation.INDEFINITE);
     drift.play();
     smoke.setUserData(drift);
+  }
+
+  private static boolean isLinux() {
+    String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
+    return os.contains("linux") || os.contains("nix");
   }
 
   /* ------------------------------------------------------------------ */
