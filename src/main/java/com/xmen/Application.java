@@ -22,7 +22,6 @@ public class Application implements CommandLineRunner {
    */
   public static void main(String[] args) {
     System.out.println("java.awt.headless=" + System.getProperty("java.awt.headless"));
-    applyLinuxJavafxTuning();
     SPRING_CONTEXT = SpringApplication.run(Application.class, args);
 
     if (!isTestRuntime()) {
@@ -100,43 +99,5 @@ public class Application implements CommandLineRunner {
         System.getProperty(
             "xmen.ui.enabled", System.getenv().getOrDefault("XMEN_UI_ENABLED", "true"));
     return Boolean.parseBoolean(value);
-  }
-
-  /**
-   * Apply JavaFX Prism tuning that makes the background-video rotator and splash MediaPlayer
-   * play smoothly on Linux. These properties have to be set before the JavaFX runtime
-   * initialises (i.e. before {@code Application.launch}), so main() is the only correct place.
-   *
-   * <ul>
-   *   <li>{@code prism.order=es2,sw} — prefer the OpenGL ES 2 pipeline and fall back to the
-   *       software pipeline. The default order on Linux can pick a problematic GL pipeline that
-   *       holds GStreamer frame uploads for several milliseconds at a time, which the user sees
-   *       as visible stutter during the background-video crossfade.
-   *   <li>{@code prism.vsync=false} — disable the Prism v-sync clamp. With v-sync enabled, the
-   *       render thread waits for the compositor's next swap interval, and on Wayland +
-   *       Mutter that wait can synchronise badly with GStreamer's frame cadence and produce a
-   *       periodic hitch.
-   *   <li>{@code prism.lcdtext=false} — text-heavy scenes (the mutation panel) repaint less
-   *       text overhead per frame, freeing CPU for media decode.
-   *   <li>{@code quantum.multithreaded=true} — explicitly opt into the multi-threaded render
-   *       pipeline so the FX thread is not the only one decoding + uploading frames.
-   * </ul>
-   *
-   * <p>Each property is only set if the caller didn't already pin a value via -D, so power users
-   * can still override at the command line. No-op on Windows and macOS.
-   */
-  private static void applyLinuxJavafxTuning() {
-    String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
-    if (!(os.contains("linux") || os.contains("nix"))) return;
-    setIfAbsent("prism.order", "es2,sw");
-    setIfAbsent("prism.vsync", "false");
-    setIfAbsent("prism.lcdtext", "false");
-    setIfAbsent("quantum.multithreaded", "true");
-  }
-
-  private static void setIfAbsent(String key, String value) {
-    if (System.getProperty(key) == null) {
-      System.setProperty(key, value);
-    }
   }
 }

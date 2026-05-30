@@ -191,14 +191,18 @@ public class XMenInterface extends Application {
     // the window is fixed at fullscreen and can never be drag-resized
     // into an awkward intermediate size.
     //
-    // Linux exception: GNOME/Mutter interprets a non-resizable window
-    // (WM_NORMAL_HINTS min_size == max_size) as a fixed-geometry window
-    // and silently un-maximises it, so the freshly-shown stage drops back
-    // to the pre-show 1100x720 minimum and only covers the top-left of
-    // the screen. We skip setResizable(false) on Linux and rely on the
-    // maximised state plus the lack of a resize affordance on most
-    // distros to keep the window full-screen.
-    if (!isLinux()) {
+    // Linux: GNOME/Mutter processes setMaximized asynchronously, so
+    // calling setResizable(false) on the same frame captures the
+    // pre-maximise size (the 1100x720 minimum) as the WM_NORMAL_HINTS
+    // lock and un-maximises the window back to that size. Defer the lock
+    // by ~300 ms so the maximise has actually applied before the size is
+    // pinned — by that point the stage's reported size is the screen
+    // bounds, and locking it keeps the fullscreen state intact.
+    if (isLinux()) {
+      PauseTransition lockAfterMaximize = new PauseTransition(Duration.millis(300));
+      lockAfterMaximize.setOnFinished(e -> stage.setResizable(false));
+      lockAfterMaximize.play();
+    } else {
       stage.setResizable(false);
     }
 
@@ -220,10 +224,22 @@ public class XMenInterface extends Application {
           if (handedOff[0]) return;
           handedOff[0] = true;
           detachSplashPlaybackWatchdog();
-          if (splashPlayer != null) {
+
+          // Swap scenes FIRST. The background-video rotator is wired up
+          // inside createMainScene(); having it kick off while the splash
+          // MediaPlayer is still alive keeps the native media runtime
+          // (Media Foundation on Windows, GStreamer on Linux, AVFoundation
+          // on macOS) initialised through the first background MediaPlayer's
+          // cold start. Tearing the splash player down before that happens
+          // was the cause of the first-background-video-stuck symptom on
+          // Windows — the runtime got fully torn down between the splash's
+          // dispose() and the rotator's first new MediaPlayer(), so the
+          // first BG video paid the full multi-second re-init cost.
+          MediaPlayer oldSplash = splashPlayer;
+          if (oldSplash != null) {
             try {
-              splashPlayer.stop();
-              splashPlayer.dispose();
+              oldSplash.setMute(true);
+              oldSplash.stop();
             } catch (Exception ignored) {
             }
           }
@@ -237,6 +253,28 @@ public class XMenInterface extends Application {
           stage.setWidth(current.getWidth());
           stage.setHeight(current.getHeight());
           stage.setMaximized(true);
+
+          // Defer the splash dispose so the native runtime stays warm long
+          // enough for the rotator to bring its first MediaPlayer up to
+          // PLAYING. 5 seconds is comfortably above the longest first-video
+          // codec init we have measured on Windows (Media Foundation cold
+          // start is typically 1-3 s; 5 s leaves headroom for slower laptops).
+          if (oldSplash != null) {
+            PauseTransition delayedDispose = new PauseTransition(Duration.seconds(5));
+            delayedDispose.setOnFinished(
+                ev -> {
+                  try {
+                    oldSplash.dispose();
+                  } catch (Exception ignored) {
+                  }
+                  // Clear the field so the shutdown hook's disposeMediaOnly()
+                  // doesn't try to dispose the already-disposed splash player.
+                  if (mediaPlayer == oldSplash) {
+                    mediaPlayer = null;
+                  }
+                });
+            delayedDispose.play();
+          }
           // preWarmBackgroundVideo() already ran during splash start; calling it
           // again here is a no-op because ensureCachedVideo() is idempotent, so
           // we drop the redundant invocation.
