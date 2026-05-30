@@ -165,6 +165,18 @@ jobs:
             ! jar tf "$jar_file" | grep -q "javafx-graphics-.*-mac-aarch64\\.jar"
           fi
 
+      - name: Verify Linux media dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          deb="$(ls target/dist/*.deb)"
+          depends="$(dpkg-deb -f "$deb" Depends)"
+          echo "$depends"
+          grep -q "libglib2.0-0" <<< "$depends"
+          grep -Eq "libavcodec[0-9]+|libavcodec-extra[0-9]+" <<< "$depends"
+          grep -Eq "libavformat[0-9]+" <<< "$depends"
+
       - name: Normalize asset name
         shell: bash
         run: |

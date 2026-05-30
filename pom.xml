@@ -754,7 +754,10 @@
                                     <linuxMenuGroup>Development;Security;Utility;</linuxMenuGroup>
                                     <linuxPackageName>x-men</linuxPackageName>
                                     <linuxAppCategory>Development</linuxAppCategory>
-                                    <linuxPackageDeps>libavcodec-extra, libavformat58 | libavformat59 | libavformat60 | libavformat61</linuxPackageDeps>
+                                    <additionalOptions>
+                                        <option>--linux-package-deps</option>
+                                        <option>libglib2.0-0, libavcodec58 | libavcodec59 | libavcodec60 | libavcodec61 | libavcodec-extra58 | libavcodec-extra59 | libavcodec-extra60 | libavcodec-extra61, libavformat58 | libavformat59 | libavformat60 | libavformat61, libavutil56 | libavutil57 | libavutil58 | libavutil59, libswresample3 | libswresample4 | libswresample5, libswscale5 | libswscale6 | libswscale7 | libswscale8</option>
+                                    </additionalOptions>
                                     <linuxRpmLicenseType>MIT</linuxRpmLicenseType>
                                     <linuxAppRelease>1</linuxAppRelease>
                                     <resourceDir>${project.basedir}/src/main/resources/packaging/linux</resourceDir>
